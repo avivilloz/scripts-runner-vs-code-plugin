@@ -92,6 +92,14 @@ export class ScriptService {
         }
     }
 
+    private quoteParameter(param: string): string {
+        // If parameter contains spaces and isn't already quoted, wrap it in quotes
+        if (param.includes(' ') && !param.startsWith('"') && !param.startsWith("'")) {
+            return `"${param}"`;
+        }
+        return param;
+    }
+
     async executeScript(script: Script): Promise<void> {
         const terminal = vscode.window.createTerminal(script.metadata.name);
         const config = vscode.workspace.getConfiguration('scriptsRunner');
@@ -118,7 +126,7 @@ export class ScriptService {
                     }
 
                     if (value || param.default) {
-                        params.push(value || param.default || '');
+                        params.push(this.quoteParameter(value || param.default || ''));
                     }
                 }
             }
