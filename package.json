@@ -1,0 +1,101 @@
+{
+    "publisher": "scripts-runner",
+    "name": "scripts-runner",
+    "displayName": "Scripts Runner",
+    "description": "Execute scripts from git repository with parameters",
+    "version": "0.0.1",
+    "engines": {
+        "vscode": "^1.85.0"
+    },
+    "categories": [
+        "Other"
+    ],
+    "activationEvents": [
+        "onView:scriptsExplorer",
+        "onCommand:scripts-runner.refresh",
+        "onCommand:scripts-runner.execute"
+    ],
+    "main": "./out/extension.js",
+    "contributes": {
+        "commands": [
+            {
+                "command": "scripts-runner.refresh",
+                "title": "Refresh Scripts",
+                "icon": "$(refresh)"
+            }
+        ],
+        "viewsContainers": {
+            "activitybar": [
+                {
+                    "id": "scripts-runner",
+                    "title": "Scripts Runner",
+                    "icon": "$(play)"
+                }
+            ]
+        },
+        "views": {
+            "scripts-runner": [
+                {
+                    "id": "scriptsExplorer",
+                    "name": "Available Scripts"
+                }
+            ]
+        },
+        "menus": {
+            "view/title": [
+                {
+                    "command": "scripts-runner.refresh",
+                    "when": "view == scriptsExplorer",
+                    "group": "navigation"
+                }
+            ]
+        },
+        "configuration": {
+            "title": "Scripts Runner",
+            "properties": {
+                "scriptsRunner.repositoryUrl": {
+                    "type": "string",
+                    "default": "",
+                    "description": "Git repository URL containing scripts"
+                },
+                "scriptsRunner.scriptsPath": {
+                    "type": "string",
+                    "default": "scripts",
+                    "description": "Path to scripts directory relative to repository root"
+                },
+                "scriptsRunner.keepTerminalOpen": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "Keep terminal open after script execution"
+                },
+                "scriptsRunner.branch": {
+                    "type": "string",
+                    "default": "",
+                    "description": "Git branch to use (leave empty for default branch)"
+                }
+            }
+        }
+    },
+    "scripts": {
+        "vscode:prepublish": "npm run compile",
+        "compile": "tsc -p ./",
+        "watch": "tsc -watch -p ./",
+        "test": "node ./out/test/runTest.js",
+        "pretest": "npm run compile",
+        "package": "vsce package"
+    },
+    "dependencies": {
+        "simple-git": "^3.21.0"
+    },
+    "devDependencies": {
+        "@types/node": "^16.0.0",
+        "@types/vscode": "^1.85.0",
+        "typescript": "^5.0.0",
+        "@types/mocha": "^10.0.0",
+        "@types/glob": "^8.0.0",
+        "mocha": "^10.2.0",
+        "glob": "^8.0.0",
+        "@vscode/test-electron": "^2.3.8",
+        "@vscode/vsce": "^2.24.0"
+    }
+}
