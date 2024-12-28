@@ -11,8 +11,6 @@
         "Other"
     ],
     "activationEvents": [
-        "onView:scriptsExplorer",
-        "onCommand:scripts-runner.refresh",
         "onCommand:scripts-runner.execute"
     ],
     "main": "./out/extension.js",
