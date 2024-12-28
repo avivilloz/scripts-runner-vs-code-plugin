@@ -26,19 +26,29 @@ export class ScriptsProvider implements vscode.TreeDataProvider<Script> {
             arguments: [element]
         };
 
-        treeItem.tooltip = new vscode.MarkdownString()
-            .appendMarkdown(`**${element.metadata.name}**\n\n`)
-            .appendMarkdown(element.metadata.description)
-            .appendMarkdown('\n\n')
-            .appendMarkdown(element.metadata.parameters?.length ?
-                '**Parameters:**\n' +
-                element.metadata.parameters
-                    .map(p => `- ${p.name}${p.required ? ' (required)' : ''}: ${p.description}`)
-                    .join('\n') :
-                'No parameters');
+        // Create detailed tooltip with markdown formatting
+        const tooltip = new vscode.MarkdownString()
+            .appendMarkdown(`## ${element.metadata.name}\n\n`)
+            .appendMarkdown(`${element.metadata.description}\n\n`);
 
-        treeItem.description = element.metadata.category;
+        if (element.metadata.category) {
+            tooltip.appendMarkdown(`**Category:** ${element.metadata.category}\n\n`);
+        }
+
+        if (element.metadata.parameters?.length) {
+            tooltip.appendMarkdown('**Parameters:**\n');
+            element.metadata.parameters.forEach(p => {
+                tooltip.appendMarkdown(`- \`${p.name}\`${p.required ? ' (required)' : ''}: ${p.description}\n`);
+                if (p.default) {
+                    tooltip.appendMarkdown(`  Default: \`${p.default}\`\n`);
+                }
+            });
+        }
+
+        treeItem.tooltip = tooltip;
+        treeItem.description = undefined; // Remove the category from showing in the list
         treeItem.iconPath = new vscode.ThemeIcon('symbol-event');
+
         return treeItem;
     }
 
