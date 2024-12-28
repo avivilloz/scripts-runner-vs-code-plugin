@@ -4,6 +4,11 @@
     "displayName": "Scripts Runner",
     "description": "Execute scripts from git repository with parameters",
     "version": "0.0.1",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/avivilloz/scripts-runner-vs-code-plugin.git"
+    },
+    "license": "MIT",
     "engines": {
         "vscode": "^1.85.0"
     },
