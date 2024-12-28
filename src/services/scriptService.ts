@@ -3,11 +3,13 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
 import { Script, ScriptMetadata } from '../models/script';
+import { InputFormProvider } from './inputFormProvider';
 
 type SupportedPlatform = 'windows' | 'linux' | 'darwin';
 
 export class ScriptService {
     private platform: SupportedPlatform;
+    private inputFormProvider: InputFormProvider;
 
     constructor() {
         const currentPlatform = os.platform();
@@ -15,6 +17,7 @@ export class ScriptService {
         this.platform = (currentPlatform === 'win32' ? 'windows' :
             currentPlatform === 'darwin' ? 'darwin' :
                 currentPlatform === 'linux' ? 'linux' : 'linux') as SupportedPlatform;
+        this.inputFormProvider = new InputFormProvider();
     }
 
     async findScripts(scriptsPath: string): Promise<Script[]> {
@@ -109,18 +112,16 @@ export class ScriptService {
             const params: string[] = [];
 
             if (script.metadata.parameters) {
-                for (const param of script.metadata.parameters) {
-                    const value = await vscode.window.showInputBox({
-                        prompt: param.description,
-                        placeHolder: param.name,
-                        value: param.default,
-                        ignoreFocusOut: true,
-                        validateInput: text => {
-                            if (param.required && !text) return `${param.name} is required`;
-                            return null;
-                        }
-                    });
+                const paramValues = await this.inputFormProvider.showParameterInputForm(script.metadata.parameters);
 
+                if (!paramValues) {
+                    // User cancelled the input form
+                    terminal.dispose();
+                    return;
+                }
+
+                for (const param of script.metadata.parameters) {
+                    const value = paramValues.get(param.name);
                     if (param.required && !value) {
                         throw new Error(`Required parameter ${param.name} not provided`);
                     }
