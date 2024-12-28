@@ -49,6 +49,18 @@ export async function activate(context: vscode.ExtensionContext) {
         await scriptService.executeScript(script);
     });
 
+    // Update command bar icons based on filter state
+    function updateCommandIcons() {
+        const hasFilters = scriptsProvider.hasActiveFilters();
+
+        // Update filter command icon
+        vscode.commands.executeCommand(
+            'setContext',
+            'scriptsRunner.hasFilters',
+            hasFilters
+        );
+    }
+
     // Add search command
     let searchCommand = vscode.commands.registerCommand('scripts-runner.search', async () => {
         const query = await vscode.window.showInputBox({
@@ -58,19 +70,50 @@ export async function activate(context: vscode.ExtensionContext) {
 
         if (query !== undefined) {
             scriptsProvider.setSearchQuery(query);
+            updateCommandIcons();
         }
     });
 
-    // Add filter by tags command
-    let filterTagsCommand = vscode.commands.registerCommand('scripts-runner.filterTags', async () => {
-        const allTags = scriptsProvider.getAllTags();
-        const selectedTags = await vscode.window.showQuickPick(allTags, {
+    // Replace separate filter commands with a single combined filter command
+    let filterCommand = vscode.commands.registerCommand('scripts-runner.filter', async () => {
+        const allCategories = scriptsProvider.getAllCategories().map(category => ({
+            label: category,
+            type: 'category',
+            picked: scriptsProvider.getSelectedCategories().includes(category)
+        }));
+
+        const allTags = scriptsProvider.getAllTags().map(tag => ({
+            label: tag,
+            type: 'tag',
+            picked: scriptsProvider.getSelectedTags().includes(tag)
+        }));
+
+        // Combine both with plain text headers
+        const items = [
+            { label: 'Categories', kind: vscode.QuickPickItemKind.Separator },
+            ...allCategories,
+            { label: 'Tags', kind: vscode.QuickPickItemKind.Separator },
+            ...allTags
+        ];
+
+        const selected = await vscode.window.showQuickPick(items, {
             canPickMany: true,
-            placeHolder: 'Select tags to filter by'
+            placeHolder: 'Select categories and tags to filter by',
+            title: 'Filter Scripts'
         });
 
-        if (selectedTags) {
+        if (selected) {
+            const selectedCategories = selected
+                .filter(item => 'type' in item && item.type === 'category')
+                .map(item => item.label);
+
+            const selectedTags = selected
+                .filter(item => 'type' in item && item.type === 'tag')
+                .map(item => item.label);
+
+            scriptsProvider.setSelectedCategories(selectedCategories);
             scriptsProvider.setSelectedTags(selectedTags);
+            updateCommandIcons();
         }
     });
 
@@ -78,13 +121,15 @@ export async function activate(context: vscode.ExtensionContext) {
     let clearFiltersCommand = vscode.commands.registerCommand('scripts-runner.clearFilters', () => {
         scriptsProvider.setSearchQuery('');
         scriptsProvider.setSelectedTags([]);
+        scriptsProvider.setSelectedCategories([]);
+        updateCommandIcons();
     });
 
     context.subscriptions.push(
         refreshCommand,
         executeCommand,
         searchCommand,
-        filterTagsCommand,
+        filterCommand,
         clearFiltersCommand
     );
 

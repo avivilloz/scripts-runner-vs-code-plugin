@@ -10,6 +10,7 @@ export class ScriptsProvider implements vscode.TreeDataProvider<Script> {
 
     private searchQuery: string = '';
     private selectedTags: string[] = [];
+    private selectedCategories: string[] = [];
     private scripts: Script[] = [];
 
     constructor(
@@ -31,6 +32,25 @@ export class ScriptsProvider implements vscode.TreeDataProvider<Script> {
         this.refresh();
     }
 
+    setSelectedCategories(categories: string[]): void {
+        this.selectedCategories = categories;
+        this.refresh();
+    }
+
+    getSelectedCategories(): string[] {
+        return this.selectedCategories;
+    }
+
+    getSelectedTags(): string[] {
+        return this.selectedTags;
+    }
+
+    hasActiveFilters(): boolean {
+        return this.searchQuery !== '' ||
+            this.selectedTags.length > 0 ||
+            this.selectedCategories.length > 0;
+    }
+
     getTreeItem(element: Script): vscode.TreeItem {
         const treeItem = new vscode.TreeItem(element.metadata.name);
 
@@ -39,6 +59,9 @@ export class ScriptsProvider implements vscode.TreeDataProvider<Script> {
             title: 'Execute Script',
             arguments: [element]
         };
+
+        // Add category to the description if it exists
+        treeItem.description = element.metadata.category || undefined;
 
         // Create detailed tooltip with markdown formatting
         const tooltip = new vscode.MarkdownString()
@@ -60,7 +83,6 @@ export class ScriptsProvider implements vscode.TreeDataProvider<Script> {
         }
 
         treeItem.tooltip = tooltip;
-        treeItem.description = undefined; // Remove the category from showing in the list
         treeItem.iconPath = new vscode.ThemeIcon('symbol-event');
 
         return treeItem;
@@ -90,6 +112,13 @@ export class ScriptsProvider implements vscode.TreeDataProvider<Script> {
                 );
             }
 
+            // Apply category filter
+            if (this.selectedCategories.length > 0) {
+                filteredScripts = filteredScripts.filter(script =>
+                    script.metadata.category && this.selectedCategories.includes(script.metadata.category)
+                );
+            }
+
             // Sort scripts by category and name
             return filteredScripts.sort((a, b) =>
                 (a.metadata.category || '').localeCompare(b.metadata.category || '') ||
@@ -109,5 +138,15 @@ export class ScriptsProvider implements vscode.TreeDataProvider<Script> {
             script.metadata.tags?.forEach(tag => tagsSet.add(tag));
         });
         return Array.from(tagsSet).sort();
+    }
+
+    getAllCategories(): string[] {
+        const categoriesSet = new Set<string>();
+        this.scripts.forEach(script => {
+            if (script.metadata.category) {
+                categoriesSet.add(script.metadata.category);
+            }
+        });
+        return Array.from(categoriesSet).sort();
     }
 }

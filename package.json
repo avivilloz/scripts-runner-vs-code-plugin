@@ -29,8 +29,8 @@
                 "icon": "$(search)"
             },
             {
-                "command": "scripts-runner.filterTags",
-                "title": "Filter by Tags",
+                "command": "scripts-runner.filter",
+                "title": "Filter Scripts",
                 "icon": "$(filter)"
             },
             {
@@ -69,13 +69,13 @@
                     "group": "navigation"
                 },
                 {
-                    "command": "scripts-runner.filterTags",
+                    "command": "scripts-runner.filter",
                     "when": "view == scriptsExplorer",
                     "group": "navigation"
                 },
                 {
                     "command": "scripts-runner.clearFilters",
-                    "when": "view == scriptsExplorer",
+                    "when": "view == scriptsExplorer && scriptsRunner.hasFilters",
                     "group": "navigation"
                 }
             ]

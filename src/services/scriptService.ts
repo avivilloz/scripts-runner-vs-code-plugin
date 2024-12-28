@@ -49,10 +49,12 @@ export class ScriptService {
 
             if (stats.isDirectory()) {
                 const metadataPath = path.join(filePath, 'script.json');
+                // Check for script.json in current directory
                 if (await fs.promises.access(metadataPath).then(() => true, () => false)) {
                     const script = await this.loadScriptFromMetadata(filePath, metadataPath);
                     if (script) scripts.push(script);
                 }
+                // Recursively check subdirectories
                 const subDirScripts = await this.findScriptsRecursively(filePath);
                 scripts.push(...subDirScripts);
             }
