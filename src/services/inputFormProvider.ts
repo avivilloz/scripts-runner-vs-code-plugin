@@ -46,15 +46,17 @@ export class InputFormProvider {
     private getWebviewContent(parameters: ParameterMetadata[]): string {
         const inputs = parameters.map(param => `
             <div class="form-group">
-                <label for="${param.name}">${param.name}${param.required ? ' *' : ''}</label>
-                <input type="text" 
-                    id="${param.name}" 
-                    name="${param.name}" 
-                    value="${param.default || ''}"
-                    placeholder="${param.description}"
-                    ${param.required ? 'required' : ''}
-                />
-                <div class="description">${param.description}</div>
+                <label for="${param.name}" class="param-label">${param.name}${param.required ? ' *' : ''}</label>
+                <div class="input-container">
+                    <input type="text" 
+                        id="${param.name}" 
+                        name="${param.name}" 
+                        value="${param.default || ''}"
+                        placeholder="${param.description}"
+                        ${param.required ? 'required' : ''}
+                    />
+                    <div class="description">${param.description}</div>
+                </div>
             </div>
         `).join('');
 
@@ -66,27 +68,71 @@ export class InputFormProvider {
                 <meta name="viewport" content="width=device-width, initial-scale=1.0">
                 <title>Script Parameters</title>
                 <style>
-                    body { padding: 10px; }
-                    .form-group { margin-bottom: 15px; }
-                    label { display: block; margin-bottom: 5px; }
+                    body { 
+                        padding: 20px; 
+                        max-width: 800px;
+                        margin: 0 auto;
+                        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+                    }
+                    .form-group { 
+                        margin-bottom: 20px;
+                        display: flex;
+                        align-items: flex-start;
+                        gap: 16px;
+                    }
+                    .param-label { 
+                        min-width: 120px;
+                        padding-top: 6px;
+                        font-weight: 500;
+                        color: var(--vscode-foreground);
+                    }
+                    .input-container {
+                        flex: 1;
+                    }
                     input { 
                         width: 100%;
-                        padding: 5px;
-                        margin-bottom: 5px;
+                        padding: 6px 8px;
+                        border: 1px solid var(--vscode-input-border);
+                        background: var(--vscode-input-background);
+                        color: var(--vscode-input-foreground);
+                        border-radius: 2px;
+                        margin-bottom: 4px;
+                    }
+                    input:focus {
+                        outline: 1px solid var(--vscode-focusBorder);
+                        border-color: var(--vscode-focusBorder);
                     }
                     .description {
-                        font-size: 0.9em;
-                        color: #888;
-                        margin-top: 2px;
+                        font-size: 12px;
+                        color: var(--vscode-descriptionForeground);
+                        margin-top: 4px;
                     }
                     .buttons {
-                        margin-top: 20px;
+                        margin-top: 24px;
                         display: flex;
-                        gap: 10px;
+                        justify-content: flex-end;
+                        gap: 8px;
                     }
                     button {
-                        padding: 8px 16px;
+                        padding: 6px 14px;
+                        border: none;
                         cursor: pointer;
+                        border-radius: 2px;
+                        font-size: 13px;
+                    }
+                    button[type="submit"] {
+                        background: var(--vscode-button-background);
+                        color: var(--vscode-button-foreground);
+                    }
+                    button[type="submit"]:hover {
+                        background: var(--vscode-button-hoverBackground);
+                    }
+                    button[type="button"] {
+                        background: var(--vscode-button-secondaryBackground);
+                        color: var(--vscode-button-secondaryForeground);
+                    }
+                    button[type="button"]:hover {
+                        background: var(--vscode-button-secondaryHoverBackground);
                     }
                 </style>
             </head>
@@ -94,8 +140,8 @@ export class InputFormProvider {
                 <form id="paramForm">
                     ${inputs}
                     <div class="buttons">
-                        <button type="submit">Run Script</button>
                         <button type="button" id="cancelBtn">Cancel</button>
+                        <button type="submit">Run Script</button>
                     </div>
                 </form>
                 <script>
