@@ -8,6 +8,10 @@ export class ScriptsProvider implements vscode.TreeDataProvider<Script> {
     private _onDidChangeTreeData: vscode.EventEmitter<Script | undefined | null | void> = new vscode.EventEmitter<Script | undefined | null | void>();
     readonly onDidChangeTreeData: vscode.Event<Script | undefined | null | void> = this._onDidChangeTreeData.event;
 
+    private searchQuery: string = '';
+    private selectedTags: string[] = [];
+    private scripts: Script[] = [];
+
     constructor(
         private gitService: GitService,
         private scriptService: ScriptService
@@ -15,6 +19,16 @@ export class ScriptsProvider implements vscode.TreeDataProvider<Script> {
 
     refresh(): void {
         this._onDidChangeTreeData.fire();
+    }
+
+    setSearchQuery(query: string): void {
+        this.searchQuery = query.toLowerCase();
+        this.refresh();
+    }
+
+    setSelectedTags(tags: string[]): void {
+        this.selectedTags = tags;
+        this.refresh();
     }
 
     getTreeItem(element: Script): vscode.TreeItem {
@@ -54,16 +68,30 @@ export class ScriptsProvider implements vscode.TreeDataProvider<Script> {
 
     async getChildren(): Promise<Script[]> {
         try {
-            const scriptsPath = this.gitService.getScriptsPath();
-            console.log('Getting scripts from:', scriptsPath);
-            const scripts = await this.scriptService.findScripts(scriptsPath);
-            console.log('Scripts found:', scripts.length);
-
-            if (scripts.length === 0) {
-                vscode.window.showInformationMessage('No scripts found. Make sure your repository contains scripts in the correct format.');
+            if (this.scripts.length === 0) {
+                const scriptsPath = this.gitService.getScriptsPath();
+                this.scripts = await this.scriptService.findScripts(scriptsPath);
             }
 
-            return scripts.sort((a, b) =>
+            let filteredScripts = this.scripts;
+
+            // Apply search filter
+            if (this.searchQuery) {
+                filteredScripts = filteredScripts.filter(script =>
+                    script.metadata.name.toLowerCase().includes(this.searchQuery) ||
+                    script.metadata.description.toLowerCase().includes(this.searchQuery)
+                );
+            }
+
+            // Apply tag filter
+            if (this.selectedTags.length > 0) {
+                filteredScripts = filteredScripts.filter(script =>
+                    script.metadata.tags?.some(tag => this.selectedTags.includes(tag))
+                );
+            }
+
+            // Sort scripts by category and name
+            return filteredScripts.sort((a, b) =>
                 (a.metadata.category || '').localeCompare(b.metadata.category || '') ||
                 a.metadata.name.localeCompare(b.metadata.name)
             );
@@ -73,5 +101,13 @@ export class ScriptsProvider implements vscode.TreeDataProvider<Script> {
             vscode.window.showErrorMessage(`Error loading scripts: ${message}`);
             return [];
         }
+    }
+
+    getAllTags(): string[] {
+        const tagsSet = new Set<string>();
+        this.scripts.forEach(script => {
+            script.metadata.tags?.forEach(tag => tagsSet.add(tag));
+        });
+        return Array.from(tagsSet).sort();
     }
 }

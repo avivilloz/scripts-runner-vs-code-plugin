@@ -22,6 +22,21 @@
                 "command": "scripts-runner.refresh",
                 "title": "Refresh Scripts",
                 "icon": "$(refresh)"
+            },
+            {
+                "command": "scripts-runner.search",
+                "title": "Search Scripts",
+                "icon": "$(search)"
+            },
+            {
+                "command": "scripts-runner.filterTags",
+                "title": "Filter by Tags",
+                "icon": "$(filter)"
+            },
+            {
+                "command": "scripts-runner.clearFilters",
+                "title": "Clear Filters",
+                "icon": "$(clear-all)"
             }
         ],
         "viewsContainers": {
@@ -45,6 +60,21 @@
             "view/title": [
                 {
                     "command": "scripts-runner.refresh",
+                    "when": "view == scriptsExplorer",
+                    "group": "navigation"
+                },
+                {
+                    "command": "scripts-runner.search",
+                    "when": "view == scriptsExplorer",
+                    "group": "navigation"
+                },
+                {
+                    "command": "scripts-runner.filterTags",
+                    "when": "view == scriptsExplorer",
+                    "group": "navigation"
+                },
+                {
+                    "command": "scripts-runner.clearFilters",
                     "when": "view == scriptsExplorer",
                     "group": "navigation"
                 }

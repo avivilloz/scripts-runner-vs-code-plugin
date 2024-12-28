@@ -49,7 +49,44 @@ export async function activate(context: vscode.ExtensionContext) {
         await scriptService.executeScript(script);
     });
 
-    context.subscriptions.push(refreshCommand, executeCommand);
+    // Add search command
+    let searchCommand = vscode.commands.registerCommand('scripts-runner.search', async () => {
+        const query = await vscode.window.showInputBox({
+            placeHolder: 'Search scripts...',
+            prompt: 'Enter search term'
+        });
+
+        if (query !== undefined) {
+            scriptsProvider.setSearchQuery(query);
+        }
+    });
+
+    // Add filter by tags command
+    let filterTagsCommand = vscode.commands.registerCommand('scripts-runner.filterTags', async () => {
+        const allTags = scriptsProvider.getAllTags();
+        const selectedTags = await vscode.window.showQuickPick(allTags, {
+            canPickMany: true,
+            placeHolder: 'Select tags to filter by'
+        });
+
+        if (selectedTags) {
+            scriptsProvider.setSelectedTags(selectedTags);
+        }
+    });
+
+    // Add clear filters command
+    let clearFiltersCommand = vscode.commands.registerCommand('scripts-runner.clearFilters', () => {
+        scriptsProvider.setSearchQuery('');
+        scriptsProvider.setSelectedTags([]);
+    });
+
+    context.subscriptions.push(
+        refreshCommand,
+        executeCommand,
+        searchCommand,
+        filterTagsCommand,
+        clearFiltersCommand
+    );
 
     // Remove initial sync to prevent error on startup
     // await gitService.syncRepository();
