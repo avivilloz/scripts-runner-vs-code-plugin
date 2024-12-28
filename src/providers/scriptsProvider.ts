@@ -18,7 +18,10 @@ export class ScriptsProvider implements vscode.TreeDataProvider<Script> {
         private scriptService: ScriptService
     ) { }
 
-    refresh(): void {
+    async refresh(): Promise<void> {
+        // Clear the scripts cache
+        this.scripts = [];
+        // Trigger the tree view update
         this._onDidChangeTreeData.fire();
     }
 

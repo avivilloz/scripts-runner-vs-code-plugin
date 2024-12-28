@@ -13,7 +13,10 @@ export async function activate(context: vscode.ExtensionContext) {
     let refreshCommand = vscode.commands.registerCommand('scripts-runner.refresh', async () => {
         try {
             await gitService.syncRepository();
-            scriptsProvider.refresh();
+            // Wait for the provider to refresh completely
+            await scriptsProvider.refresh();
+            // Show success message
+            vscode.window.showInformationMessage('Scripts refreshed successfully');
         } catch (error: any) {
             if (error.message === 'Repository URL not configured') {
                 const result = await vscode.window.showErrorMessage(
