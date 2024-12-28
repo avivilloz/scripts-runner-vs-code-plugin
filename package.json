@@ -93,11 +93,6 @@
                     "default": "scripts",
                     "description": "Path to scripts directory relative to repository root"
                 },
-                "scriptsRunner.keepTerminalOpen": {
-                    "type": "boolean",
-                    "default": false,
-                    "description": "Keep terminal open after script execution"
-                },
                 "scriptsRunner.branch": {
                     "type": "string",
                     "default": "",
