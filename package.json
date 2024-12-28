@@ -1,5 +1,5 @@
 {
-    "publisher": "scripts-runner",
+    "publisher": "avivilloz",
     "name": "scripts-runner",
     "displayName": "Scripts Runner",
     "description": "Execute scripts from git repository with parameters",
