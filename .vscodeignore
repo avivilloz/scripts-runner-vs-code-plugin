@@ -9,8 +9,13 @@ src/**
 **/*.ts
 .github/**
 .git/**
+
+# Selectively include only needed node_modules
 node_modules/**
-scripts-runner*.vsix
+!node_modules/simple-git/**
+!node_modules/@kwsites/**
+!node_modules/debug/**
+!node_modules/ms/**
 
 # Include compiled output
 !out/**/*.js
@@ -22,3 +27,4 @@ scripts-runner*.vsix
 # Development files
 test/**
 package-lock.json
+*.vsix
