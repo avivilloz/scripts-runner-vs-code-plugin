@@ -4,14 +4,21 @@ import { ScriptService } from './services/scriptService';
 import { ScriptsProvider } from './providers/scriptsProvider';
 
 export async function activate(context: vscode.ExtensionContext) {
+    console.log('Scripts Runner extension is being activated');
+
     const gitService = new GitService(context);
     const scriptService = new ScriptService();
     const scriptsProvider = new ScriptsProvider(gitService, scriptService);
 
+    // Register tree data provider
+    console.log('Registering tree data provider');
     vscode.window.registerTreeDataProvider('scriptsExplorer', scriptsProvider);
 
     // Check if extension is enabled
     const isEnabled = () => vscode.workspace.getConfiguration('scriptsRunner').get('enabled', true);
+
+    // Register all commands
+    console.log('Registering extension commands');
 
     // Add enable/disable commands
     let enableCommand = vscode.commands.registerCommand('scripts-runner.enable', async () => {
@@ -158,8 +165,7 @@ export async function activate(context: vscode.ExtensionContext) {
         disableCommand
     );
 
-    // Remove initial sync to prevent error on startup
-    // await gitService.syncRepository();
+    console.log('Scripts Runner extension activated successfully');
 }
 
 export function deactivate() { }

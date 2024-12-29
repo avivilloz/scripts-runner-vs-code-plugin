@@ -16,13 +16,7 @@
         "Other"
     ],
     "activationEvents": [
-        "onView:scriptsExplorer",
-        "onCommand:scripts-runner.execute",
-        "onCommand:scripts-runner.refresh",
-        "onCommand:scripts-runner.search",
-        "onCommand:scripts-runner.filter",
-        "onCommand:scripts-runner.clearFilters",
-        "onStartupFinished"
+        "*"
     ],
     "main": "./out/extension.js",
     "contributes": {
