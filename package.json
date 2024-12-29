@@ -1,9 +1,14 @@
 {
-    "publisher": "scripts-runner",
+    "publisher": "avivilloz",
     "name": "scripts-runner",
     "displayName": "Scripts Runner",
     "description": "Execute scripts from git repository with parameters",
-    "version": "0.0.1",
+    "version": "0.0.4",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/avivilloz/scripts-runner-vs-code-plugin.git"
+    },
+    "license": "MIT",
     "engines": {
         "vscode": "^1.85.0"
     },
@@ -12,8 +17,12 @@
     ],
     "activationEvents": [
         "onView:scriptsExplorer",
+        "onCommand:scripts-runner.execute",
         "onCommand:scripts-runner.refresh",
-        "onCommand:scripts-runner.execute"
+        "onCommand:scripts-runner.search",
+        "onCommand:scripts-runner.filter",
+        "onCommand:scripts-runner.clearFilters",
+        "onStartupFinished"
     ],
     "main": "./out/extension.js",
     "contributes": {
@@ -22,6 +31,31 @@
                 "command": "scripts-runner.refresh",
                 "title": "Refresh Scripts",
                 "icon": "$(refresh)"
+            },
+            {
+                "command": "scripts-runner.search",
+                "title": "Search Scripts",
+                "icon": "$(search)"
+            },
+            {
+                "command": "scripts-runner.filter",
+                "title": "Filter Scripts",
+                "icon": "$(filter)"
+            },
+            {
+                "command": "scripts-runner.clearFilters",
+                "title": "Clear Filters",
+                "icon": "$(clear-all)"
+            },
+            {
+                "command": "scripts-runner.enable",
+                "title": "Enable Scripts Runner",
+                "category": "Scripts Runner"
+            },
+            {
+                "command": "scripts-runner.disable",
+                "title": "Disable Scripts Runner",
+                "category": "Scripts Runner"
             }
         ],
         "viewsContainers": {
@@ -47,6 +81,21 @@
                     "command": "scripts-runner.refresh",
                     "when": "view == scriptsExplorer",
                     "group": "navigation"
+                },
+                {
+                    "command": "scripts-runner.search",
+                    "when": "view == scriptsExplorer",
+                    "group": "navigation"
+                },
+                {
+                    "command": "scripts-runner.filter",
+                    "when": "view == scriptsExplorer",
+                    "group": "navigation"
+                },
+                {
+                    "command": "scripts-runner.clearFilters",
+                    "when": "view == scriptsExplorer && scriptsRunner.hasFilters",
+                    "group": "navigation"
                 }
             ]
         },
@@ -63,15 +112,15 @@
                     "default": "scripts",
                     "description": "Path to scripts directory relative to repository root"
                 },
-                "scriptsRunner.keepTerminalOpen": {
-                    "type": "boolean",
-                    "default": false,
-                    "description": "Keep terminal open after script execution"
-                },
                 "scriptsRunner.branch": {
                     "type": "string",
                     "default": "",
                     "description": "Git branch to use (leave empty for default branch)"
+                },
+                "scriptsRunner.enabled": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "Enable/disable Scripts Runner"
                 }
             }
         }

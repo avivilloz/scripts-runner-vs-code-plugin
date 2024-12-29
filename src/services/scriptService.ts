@@ -3,11 +3,14 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
 import { Script, ScriptMetadata } from '../models/script';
+import { InputFormProvider } from './inputFormProvider';
 
 type SupportedPlatform = 'windows' | 'linux' | 'darwin';
 
 export class ScriptService {
     private platform: SupportedPlatform;
+    private inputFormProvider: InputFormProvider;
+    private activeTerminal: vscode.Terminal | null = null;
 
     constructor() {
         const currentPlatform = os.platform();
@@ -15,6 +18,7 @@ export class ScriptService {
         this.platform = (currentPlatform === 'win32' ? 'windows' :
             currentPlatform === 'darwin' ? 'darwin' :
                 currentPlatform === 'linux' ? 'linux' : 'linux') as SupportedPlatform;
+        this.inputFormProvider = new InputFormProvider();
     }
 
     async findScripts(scriptsPath: string): Promise<Script[]> {
@@ -45,10 +49,12 @@ export class ScriptService {
 
             if (stats.isDirectory()) {
                 const metadataPath = path.join(filePath, 'script.json');
+                // Check for script.json in current directory
                 if (await fs.promises.access(metadataPath).then(() => true, () => false)) {
                     const script = await this.loadScriptFromMetadata(filePath, metadataPath);
                     if (script) scripts.push(script);
                 }
+                // Recursively check subdirectories
                 const subDirScripts = await this.findScriptsRecursively(filePath);
                 scripts.push(...subDirScripts);
             }
@@ -100,27 +106,66 @@ export class ScriptService {
         return param;
     }
 
+    private getTerminal(settings: ScriptMetadata['terminal'], scriptName: string): vscode.Terminal {
+        console.log('Terminal settings:', settings);
+        console.log('Current terminals:', vscode.window.terminals.map(t => t.name));
+        console.log('Active terminal:', vscode.window.activeTerminal?.name);
+
+        if (settings?.useCurrent) {
+            // Make sure the active terminal exists and is visible
+            if (vscode.window.activeTerminal) {
+                console.log('Using existing active terminal:', vscode.window.activeTerminal.name);
+                vscode.window.activeTerminal.show(true); // true = preserve focus
+                return vscode.window.activeTerminal;
+            }
+
+            // If there's any terminal, use the first one
+            if (vscode.window.terminals.length > 0) {
+                const terminal = vscode.window.terminals[0];
+                console.log('No active terminal, using first available:', terminal.name);
+                terminal.show(true);
+                return terminal;
+            }
+
+            console.log('No existing terminals found, creating new one');
+        } else {
+            console.log('useCurrent is false, creating new terminal');
+        }
+
+        // Create new terminal if requested or if no existing terminals
+        const terminal = vscode.window.createTerminal(scriptName);
+        console.log('Created new terminal:', terminal.name);
+        terminal.show(true);
+        return terminal;
+    }
+
     async executeScript(script: Script): Promise<void> {
-        const terminal = vscode.window.createTerminal(script.metadata.name);
-        const config = vscode.workspace.getConfiguration('scriptsRunner');
-        const keepTerminalOpen = config.get<boolean>('keepTerminalOpen', false);
+        console.log('Executing script:', script.metadata.name);
+        console.log('Terminal settings:', script.metadata.terminal);
+
+        // Set default terminal settings if none provided
+        const terminalSettings: ScriptMetadata['terminal'] = {
+            useCurrent: false,
+            ...script.metadata.terminal
+        };
+
+        const terminal = this.getTerminal(terminalSettings, script.metadata.name);
 
         try {
             const params: string[] = [];
 
             if (script.metadata.parameters) {
-                for (const param of script.metadata.parameters) {
-                    const value = await vscode.window.showInputBox({
-                        prompt: param.description,
-                        placeHolder: param.name,
-                        value: param.default,
-                        ignoreFocusOut: true,
-                        validateInput: text => {
-                            if (param.required && !text) return `${param.name} is required`;
-                            return null;
-                        }
-                    });
+                const paramValues = await this.inputFormProvider.showParameterInputForm(script.metadata.parameters);
 
+                if (!paramValues) {
+                    if (!terminalSettings.useCurrent) {
+                        terminal.dispose();
+                    }
+                    return;
+                }
+
+                for (const param of script.metadata.parameters) {
+                    const value = paramValues.get(param.name);
                     if (param.required && !value) {
                         throw new Error(`Required parameter ${param.name} not provided`);
                     }
@@ -133,44 +178,46 @@ export class ScriptService {
 
             // Build command based on script type
             let command = '';
+            const closeCommand = terminalSettings.closeOnExit ? ' && exit' : '';
+
+            // On Windows, we need a different approach for closing PowerShell
+            const isPowershell = path.extname(script.path) === '.ps1';
+            const exitCommand = isPowershell ?
+                (terminalSettings.closeOnExit ? '; exit' : '') :
+                (terminalSettings.closeOnExit ? ' && exit' : '');
+
             switch (path.extname(script.path)) {
                 case '.sh':
-                    command = keepTerminalOpen ?
-                        `bash "${script.path}" ${params.join(' ')}` :
-                        `bash "${script.path}" ${params.join(' ')} && exit`;
+                    command = `bash "${script.path}" ${params.join(' ')}${exitCommand}`;
                     break;
                 case '.bat':
-                    command = keepTerminalOpen ?
-                        `"${script.path}" ${params.join(' ')}` :
-                        `"${script.path}" ${params.join(' ')} && exit`;
+                    command = `"${script.path}" ${params.join(' ')}${exitCommand}`;
                     break;
                 case '.ps1':
-                    command = keepTerminalOpen ?
-                        `powershell -File "${script.path}" ${params.join(' ')}` :
-                        `powershell -File "${script.path}" ${params.join(' ')} ; exit`;
+                    command = `powershell -File "${script.path}" ${params.join(' ')}${exitCommand}`;
                     break;
                 case '.py':
-                    command = keepTerminalOpen ?
-                        `python "${script.path}" ${params.join(' ')}` :
-                        `python "${script.path}" ${params.join(' ')} && exit`;
+                    command = `python "${script.path}" ${params.join(' ')}${exitCommand}`;
                     break;
             }
 
             terminal.show();
             terminal.sendText(command);
 
-            if (!keepTerminalOpen) {
-                await new Promise(resolve => setTimeout(resolve, 100));
-                terminal.dispose();
+            if (terminalSettings.closeOnExit) {
+                await new Promise(resolve => setTimeout(resolve, 500));
+
+                if (!terminalSettings.useCurrent) {
+                    terminal.dispose();
+                    this.activeTerminal = null;
+                }
             }
         } catch (error: unknown) {
-            if (!keepTerminalOpen) {
+            if (!terminalSettings.useCurrent) {
                 terminal.dispose();
+                this.activeTerminal = null;
             }
-            if (error instanceof Error) {
-                throw error;
-            }
-            throw new Error('Unknown error occurred while executing script');
+            throw error;
         }
     }
 }
