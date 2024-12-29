@@ -10,7 +10,27 @@ export async function activate(context: vscode.ExtensionContext) {
 
     vscode.window.registerTreeDataProvider('scriptsExplorer', scriptsProvider);
 
+    // Check if extension is enabled
+    const isEnabled = () => vscode.workspace.getConfiguration('scriptsRunner').get('enabled', true);
+
+    // Add enable/disable commands
+    let enableCommand = vscode.commands.registerCommand('scripts-runner.enable', async () => {
+        await vscode.workspace.getConfiguration('scriptsRunner').update('enabled', true, true);
+        vscode.window.showInformationMessage('Scripts Runner has been enabled');
+        scriptsProvider.refresh();
+    });
+
+    let disableCommand = vscode.commands.registerCommand('scripts-runner.disable', async () => {
+        await vscode.workspace.getConfiguration('scriptsRunner').update('enabled', false, true);
+        vscode.window.showInformationMessage('Scripts Runner has been disabled');
+        scriptsProvider.refresh();
+    });
+
     let refreshCommand = vscode.commands.registerCommand('scripts-runner.refresh', async () => {
+        if (!isEnabled()) {
+            vscode.window.showWarningMessage('Scripts Runner is disabled. Enable it in settings to use.');
+            return;
+        }
         try {
             await gitService.syncRepository();
             // Wait for the provider to refresh completely
@@ -133,7 +153,9 @@ export async function activate(context: vscode.ExtensionContext) {
         executeCommand,
         searchCommand,
         filterCommand,
-        clearFiltersCommand
+        clearFiltersCommand,
+        enableCommand,
+        disableCommand
     );
 
     // Remove initial sync to prevent error on startup

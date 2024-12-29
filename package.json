@@ -3,7 +3,7 @@
     "name": "scripts-runner",
     "displayName": "Scripts Runner",
     "description": "Execute scripts from git repository with parameters",
-    "version": "0.0.2",
+    "version": "0.0.3",
     "repository": {
         "type": "git",
         "url": "https://github.com/avivilloz/scripts-runner-vs-code-plugin.git"
@@ -16,7 +16,13 @@
         "Other"
     ],
     "activationEvents": [
-        "onCommand:scripts-runner.execute"
+        "onView:scriptsExplorer",
+        "onCommand:scripts-runner.execute",
+        "onCommand:scripts-runner.refresh",
+        "onCommand:scripts-runner.search",
+        "onCommand:scripts-runner.filter",
+        "onCommand:scripts-runner.clearFilters",
+        "onStartupFinished"
     ],
     "main": "./out/extension.js",
     "contributes": {
@@ -40,6 +46,16 @@
                 "command": "scripts-runner.clearFilters",
                 "title": "Clear Filters",
                 "icon": "$(clear-all)"
+            },
+            {
+                "command": "scripts-runner.enable",
+                "title": "Enable Scripts Runner",
+                "category": "Scripts Runner"
+            },
+            {
+                "command": "scripts-runner.disable",
+                "title": "Disable Scripts Runner",
+                "category": "Scripts Runner"
             }
         ],
         "viewsContainers": {
@@ -100,6 +116,11 @@
                     "type": "string",
                     "default": "",
                     "description": "Git branch to use (leave empty for default branch)"
+                },
+                "scriptsRunner.enabled": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "Enable/disable Scripts Runner"
                 }
             }
         }
