@@ -21,15 +21,37 @@ A Visual Studio Code extension that allows you to run PowerShell and Shell scrip
 
 ## Configuration
 
-Configure the extension through VS Code settings:
+Configure the extension through VS Code settings. You can add multiple repositories with different script locations:
 
 ```json
 {
-    "scriptsRunner.repositoryUrl": "https://github.com/username/scripts-repo.git",
-    "scriptsRunner.branch": "main",  // Optional: defaults to repository's default branch
-    "scriptsRunner.scriptsPath": "scripts"  // Optional: defaults to "scripts"
+    "scriptsRunner.repositories": [
+        {
+            "name": "Team Scripts",
+            "url": "https://github.com/team/scripts.git",
+            "branch": "main",
+            "scriptsPath": "scripts"
+        },
+        {
+            "name": "Infrastructure Scripts",
+            "url": "git@github.com:team/infrastructure.git",
+            "branch": "develop",
+            "scriptsPath": "automation/scripts"
+        },
+        {
+            "name": "Personal Scripts",
+            "url": "https://github.com/user/tools.git",
+            "scriptsPath": "powershell-scripts"
+        }
+    ]
 }
 ```
+
+Each repository configuration supports:
+- `name`: Display name for the repository (optional but recommended)
+- `url`: Git repository URL (required)
+- `branch`: Branch to use (optional, defaults to main/master)
+- `scriptsPath`: Path to scripts directory within the repository (optional, defaults to "scripts")
 
 ## Script Structure
 

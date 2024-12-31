@@ -3,53 +3,69 @@ import * as path from 'path';
 import simpleGit, { SimpleGit } from 'simple-git';
 import * as fs from 'fs';
 
+interface RepoConfig {
+    url: string;
+    branch?: string;
+    scriptsPath?: string;
+    name?: string;
+}
+
 export class GitService {
-    private git: SimpleGit;
     private workspacePath: string;
 
     constructor(private context: vscode.ExtensionContext) {
-        this.workspacePath = path.join(context.globalStorageUri.fsPath, 'scripts-repo');
-        // Create directory if it doesn't exist
+        this.workspacePath = path.join(context.globalStorageUri.fsPath, 'scripts-repos');
         if (!fs.existsSync(this.workspacePath)) {
             fs.mkdirSync(this.workspacePath, { recursive: true });
         }
-        this.git = simpleGit();
     }
 
-    async syncRepository(): Promise<void> {
+    private getRepoPath(repoUrl: string): string {
+        // Create a safe directory name from the repo URL
+        const repoName = repoUrl.split('/').pop()?.replace('.git', '') ||
+            Buffer.from(repoUrl).toString('base64');
+        return path.join(this.workspacePath, repoName);
+    }
+
+    async syncRepositories(): Promise<void> {
         const config = vscode.workspace.getConfiguration('scriptsRunner');
-        const repoUrl = config.get<string>('repositoryUrl');
-        const configuredBranch = config.get<string>('branch');
+        const repositories = config.get<RepoConfig[]>('repositories', []);
 
-        console.log('Repository URL:', repoUrl);
-        console.log('Configured Branch:', configuredBranch);
-        console.log('Workspace Path:', this.workspacePath);
-
-        if (!repoUrl) {
-            throw new Error('Repository URL not configured');
+        if (repositories.length === 0) {
+            throw new Error('No repositories configured');
         }
+
+        for (const repo of repositories) {
+            await this.syncSingleRepository(repo);
+        }
+    }
+
+    private async syncSingleRepository(config: RepoConfig): Promise<void> {
+        const repoPath = this.getRepoPath(config.url);
+        console.log('Syncing repository:', config.url);
+        console.log('Repository path:', repoPath);
 
         try {
             // Remove existing directory if it exists
-            if (fs.existsSync(this.workspacePath)) {
-                await fs.promises.rm(this.workspacePath, { recursive: true, force: true });
+            if (fs.existsSync(repoPath)) {
+                await fs.promises.rm(repoPath, { recursive: true, force: true });
             }
 
             // Create fresh directory
-            fs.mkdirSync(this.workspacePath, { recursive: true });
+            fs.mkdirSync(repoPath, { recursive: true });
 
             // Clone repository
-            this.git = simpleGit();
-            await this.git.clone(repoUrl, this.workspacePath);
+            const git = simpleGit();
+            await git.clone(config.url, repoPath);
 
             // Initialize git in the directory
-            this.git = simpleGit(this.workspacePath);
+            const repoGit = simpleGit(repoPath);
 
             // Get available branches
-            const branches = await this.git.branch();
+            const branches = await repoGit.branch();
 
             // Determine which branch to use
-            let targetBranch = configuredBranch;
+            let targetBranch = config.branch;
             if (!targetBranch) {
                 targetBranch = branches.current || 'main';
                 console.log('No branch configured, using:', targetBranch);
@@ -59,35 +75,30 @@ export class GitService {
             }
 
             // Switch to target branch
-            await this.git.checkout(targetBranch);
+            await repoGit.checkout(targetBranch);
             console.log('Checked out branch:', targetBranch);
 
             // Ensure scripts directory exists
-            const scriptsPath = this.getScriptsPath();
+            const scriptsPath = this.getScriptsPath(config, repoPath);
             if (!fs.existsSync(scriptsPath)) {
                 fs.mkdirSync(scriptsPath, { recursive: true });
             }
 
-            console.log('Repository synced successfully');
-            console.log('Current branch:', targetBranch);
-            console.log('Scripts path:', scriptsPath);
-
-            if (fs.existsSync(scriptsPath)) {
-                console.log('Scripts directory contents:', await fs.promises.readdir(scriptsPath));
-            }
-        } catch (error: unknown) {
-            console.error('Git operation failed:', error);
-            if (error instanceof Error) {
-                vscode.window.showErrorMessage(`Git operation failed: ${error.message}`);
-            } else {
-                vscode.window.showErrorMessage('Git operation failed with unknown error');
-            }
+            console.log('Repository synced successfully:', config.name || config.url);
+        } catch (error) {
+            console.error(`Failed to sync repository ${config.url}:`, error);
             throw error;
         }
     }
 
-    getScriptsPath(): string {
+    getAllScriptsPaths(): string[] {
         const config = vscode.workspace.getConfiguration('scriptsRunner');
-        return path.join(this.workspacePath, config.get<string>('scriptsPath', 'scripts'));
+        const repositories = config.get<RepoConfig[]>('repositories', []);
+
+        return repositories.map(repo => this.getScriptsPath(repo, this.getRepoPath(repo.url)));
+    }
+
+    private getScriptsPath(config: RepoConfig, repoPath: string): string {
+        return path.join(repoPath, config.scriptsPath || 'scripts');
     }
 }

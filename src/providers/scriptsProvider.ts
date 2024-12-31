@@ -94,8 +94,8 @@ export class ScriptsProvider implements vscode.TreeDataProvider<Script> {
     async getChildren(): Promise<Script[]> {
         try {
             if (this.scripts.length === 0) {
-                const scriptsPath = this.gitService.getScriptsPath();
-                this.scripts = await this.scriptService.findScripts(scriptsPath);
+                const scriptsPaths = this.gitService.getAllScriptsPaths();
+                this.scripts = await this.scriptService.findScripts(scriptsPaths);
             }
 
             let filteredScripts = this.scripts;
