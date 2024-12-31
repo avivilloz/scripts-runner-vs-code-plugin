@@ -145,9 +145,29 @@ export class ScriptService {
         return terminal;
     }
 
+    private getRepositoryPath(scriptPath: string): string {
+        // Walk up the directory tree until we find the repository root (where scripts folder is)
+        let currentPath = path.dirname(scriptPath);
+        let lastPath = '';
+
+        while (currentPath !== lastPath) {
+            // Check if we've reached the scripts-repos directory
+            if (path.basename(path.dirname(currentPath)) === 'scripts-repos') {
+                return currentPath;
+            }
+            lastPath = currentPath;
+            currentPath = path.dirname(currentPath);
+        }
+        return currentPath;
+    }
+
     async executeScript(script: Script): Promise<void> {
         console.log('Executing script:', script.metadata.name);
         console.log('Terminal settings:', script.metadata.terminal);
+
+        // Get repository path for environment variable
+        const repoPath = this.getRepositoryPath(script.path);
+        console.log('Repository path:', repoPath);
 
         // Set default terminal settings if none provided
         const terminalSettings: ScriptMetadata['terminal'] = {
@@ -183,29 +203,48 @@ export class ScriptService {
             }
 
             // Build command based on script type
-            let command = '';
-            const closeCommand = terminalSettings.closeOnExit ? ' && exit' : '';
 
             // On Windows, we need a different approach for closing PowerShell
-            const isPowershell = path.extname(script.path) === '.ps1';
-            const exitCommand = isPowershell ?
+            // const isPowershell = path.extname(script.path) === '.ps1';
+            const isWindows = this.platform === 'windows';
+            const exitCommand = isWindows ?
                 (terminalSettings.closeOnExit ? '; exit' : '') :
                 (terminalSettings.closeOnExit ? ' && exit' : '');
 
+            let scriptCommand = '';
             switch (path.extname(script.path)) {
                 case '.sh':
-                    command = `bash "${script.path}" ${params.join(' ')}${exitCommand}`;
-                    break;
-                case '.bat':
-                    command = `"${script.path}" ${params.join(' ')}${exitCommand}`;
+                    scriptCommand = `bash "${script.path}" ${params.join(' ')}${exitCommand}`;
                     break;
                 case '.ps1':
-                    command = `powershell -File "${script.path}" ${params.join(' ')}${exitCommand}`;
+                    scriptCommand = `powershell -File "${script.path}" ${params.join(' ')}${exitCommand}`;
                     break;
                 case '.py':
-                    command = `python "${script.path}" ${params.join(' ')}${exitCommand}`;
+                    scriptCommand = `python "${script.path}" ${params.join(' ')}${exitCommand}`;
                     break;
             }
+
+            // Prepare environment variables
+            const env: Record<string, string> = {
+                SCRIPT_PATH: script.path,
+                SCRIPTS_REPO_PATH: repoPath,
+                // Add more built-in variables as needed
+            };
+
+            // Build environment variable export commands
+            let envSetup = '';
+            if (isWindows) {
+                envSetup = Object.entries(env)
+                    .map(([key, value]) => `$env:${key}="${value}";`)
+                    .join(' ');
+            } else {
+                envSetup = Object.entries(env)
+                    .map(([key, value]) => `export ${key}="${value}";`)
+                    .join(' ');
+            }
+
+            // Build final command with environment setup
+            const command = `${envSetup} ${scriptCommand}`;
 
             terminal.show();
             terminal.sendText(command);
