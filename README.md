@@ -115,6 +115,13 @@ Each script must have a `script.json` file defining its metadata:
 4. Click a script to run it
 5. If the script has parameters, fill in the form and click "Run Script"
 
+### Built-in Environment Variables
+
+Each script automatically receives these environment variables:
+
+- `SCRIPT_PATH`: Full path to the executing script file
+- `SCRIPTS_REPO_PATH`: Root path of the repository containing the script
+
 ## Features
 
 ### Terminal Integration
