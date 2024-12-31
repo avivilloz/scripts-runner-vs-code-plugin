@@ -39,7 +39,7 @@ export async function activate(context: vscode.ExtensionContext) {
             return;
         }
         try {
-            await gitService.syncRepository();
+            await gitService.syncRepositories();
             // Wait for the provider to refresh completely
             await scriptsProvider.refresh();
             // Show success message
@@ -65,7 +65,7 @@ export async function activate(context: vscode.ExtensionContext) {
                         if (branch) {
                             await vscode.workspace.getConfiguration('scriptsRunner').update('branch', branch, true);
                         }
-                        await gitService.syncRepository();
+                        await gitService.syncRepositories();
                         scriptsProvider.refresh();
                     }
                 }

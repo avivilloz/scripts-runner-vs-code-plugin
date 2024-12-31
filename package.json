@@ -96,20 +96,35 @@
         "configuration": {
             "title": "Scripts Runner",
             "properties": {
-                "scriptsRunner.repositoryUrl": {
-                    "type": "string",
-                    "default": "",
-                    "description": "Git repository URL containing scripts"
-                },
-                "scriptsRunner.scriptsPath": {
-                    "type": "string",
-                    "default": "scripts",
-                    "description": "Path to scripts directory relative to repository root"
-                },
-                "scriptsRunner.branch": {
-                    "type": "string",
-                    "default": "",
-                    "description": "Git branch to use (leave empty for default branch)"
+                "scriptsRunner.repositories": {
+                    "type": "array",
+                    "default": [],
+                    "items": {
+                        "type": "object",
+                        "required": [
+                            "url"
+                        ],
+                        "properties": {
+                            "url": {
+                                "type": "string",
+                                "description": "Git repository URL containing scripts"
+                            },
+                            "branch": {
+                                "type": "string",
+                                "description": "Git branch to use (leave empty for default branch)"
+                            },
+                            "scriptsPath": {
+                                "type": "string",
+                                "default": "scripts",
+                                "description": "Path to scripts directory relative to repository root"
+                            },
+                            "name": {
+                                "type": "string",
+                                "description": "Display name for this repository"
+                            }
+                        }
+                    },
+                    "description": "List of Git repositories containing scripts"
                 },
                 "scriptsRunner.enabled": {
                     "type": "boolean",

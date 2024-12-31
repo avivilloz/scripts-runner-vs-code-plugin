@@ -21,15 +21,21 @@ export class ScriptService {
         this.inputFormProvider = new InputFormProvider();
     }
 
-    async findScripts(scriptsPath: string): Promise<Script[]> {
-        console.log('Starting script search in:', scriptsPath);
-        if (!fs.existsSync(scriptsPath)) {
-            console.error('Scripts path does not exist:', scriptsPath);
-            return [];
+    async findScripts(scriptsPaths: string[]): Promise<Script[]> {
+        console.log('Starting script search in paths:', scriptsPaths);
+        const allScripts: Script[] = [];
+
+        for (const scriptsPath of scriptsPaths) {
+            if (!fs.existsSync(scriptsPath)) {
+                console.error('Scripts path does not exist:', scriptsPath);
+                continue;
+            }
+            const results = await this.findScriptsRecursively(scriptsPath);
+            allScripts.push(...results);
         }
-        const results = await this.findScriptsRecursively(scriptsPath);
-        console.log('Found scripts:', results);
-        return results;
+
+        console.log('Found total scripts:', allScripts.length);
+        return allScripts;
     }
 
     private async findScriptsRecursively(dir: string): Promise<Script[]> {
