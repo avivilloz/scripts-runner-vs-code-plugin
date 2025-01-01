@@ -265,7 +265,7 @@ export class ScriptService {
             const command = `${envSetup} ${scriptCommand}`;
 
             terminal.show();
-            terminal.sendText(command, false);
+            terminal.sendText(command);
 
             if (terminalSettings.onExit?.close) {
                 await new Promise(resolve => setTimeout(resolve, 500));
