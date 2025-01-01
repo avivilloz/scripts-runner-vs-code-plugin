@@ -75,13 +75,17 @@ export class ScriptsProvider implements vscode.TreeDataProvider<Script> {
             tooltip.appendMarkdown(`**Category:** ${element.metadata.category}\n\n`);
         }
 
+        if (element.metadata.tags?.length) {
+            tooltip.appendMarkdown(`**Tags:** ${element.metadata.tags.join(', ')}\n\n`);
+        }
+
         if (element.metadata.parameters?.length) {
             tooltip.appendMarkdown('**Parameters:**\n');
             element.metadata.parameters.forEach(p => {
-                tooltip.appendMarkdown(`- \`${p.name}\`${p.required ? ' (required)' : ''}: ${p.description}\n`);
-                if (p.default) {
-                    tooltip.appendMarkdown(`  Default: \`${p.default}\`\n`);
-                }
+                const defaultValue = p.type === 'boolean'
+                    ? `(default: ${p.default ? 'true' : 'false'})`
+                    : p.default ? `(default: ${p.default})` : '';
+                tooltip.appendMarkdown(`- \`${p.name}\`${p.required ? ' (required)' : ''}: ${p.description} ${defaultValue}\n`);
             });
         }
 

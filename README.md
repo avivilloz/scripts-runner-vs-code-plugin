@@ -92,17 +92,31 @@ Each script must have a `script.json` file defining its metadata:
         {
             "name": "host",
             "description": "Target hostname",
-            "required": true
+            "required": true,
+            "type": "text"
         },
         {
             "name": "port",
             "description": "Port number",
-            "default": "8080"
+            "default": "8080",
+            "type": "text"
+        },
+        {
+            "name": "useSSL",
+            "description": "Use SSL",
+            "default": false,
+            "type": "boolean"
+        },
+        {
+            "name": "timeout",
+            "description": "Timeout in seconds",
+            "default": 30,
+            "type": "number"
         }
     ],
     "terminal": {
         "useCurrent": false,
-        "onExit" {
+        "onExit": {
             "close": false,
             "clear": false,
             "refresh": false

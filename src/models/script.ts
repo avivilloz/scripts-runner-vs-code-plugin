@@ -10,9 +10,9 @@ export interface ScriptMetadata {
     terminal?: {
         useCurrent: boolean;
         onExit?: {
-            close?: boolean;
-            clear?: boolean;
             refresh?: boolean;
+            clear?: boolean;
+            close?: boolean;
         };
     };
 }
@@ -20,8 +20,10 @@ export interface ScriptMetadata {
 export interface ParameterMetadata {
     name: string;
     description: string;
-    default?: string;
+    type?: 'text' | 'select' | 'boolean';
     required?: boolean;
+    options?: string[];                     // Available options for 'select' type
+    default?: string | boolean;             // Allow both string and boolean defaults
 }
 
 export interface Script {

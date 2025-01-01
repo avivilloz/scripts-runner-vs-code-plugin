@@ -173,9 +173,9 @@ export class ScriptService {
         const terminalSettings: ScriptMetadata['terminal'] = {
             useCurrent: false,
             onExit: {
-                close: false,
-                clear: false,
                 refresh: false,
+                clear: false,
+                close: false,
                 ...script.metadata.terminal?.onExit
             },
             ...script.metadata.terminal
@@ -202,8 +202,12 @@ export class ScriptService {
                         throw new Error(`Required parameter ${param.name} not provided`);
                     }
 
-                    if (value || param.default) {
-                        params.push(this.quoteParameter(value || param.default || ''));
+                    if (value || param.default !== undefined) {
+                        // Convert default value to string if it's boolean
+                        const defaultValue = typeof param.default === 'boolean'
+                            ? param.default.toString()
+                            : param.default;
+                        params.push(this.quoteParameter(value || defaultValue || ''));
                     }
                 }
             }
@@ -216,11 +220,11 @@ export class ScriptService {
             let exitCommands = [];
 
             // Build exit commands based on settings
-            if (terminalSettings.onExit?.clear) {
-                exitCommands.push(isWindows ? 'clear' : 'clear');
-            }
             if (terminalSettings.onExit?.refresh) {
                 exitCommands.push(isWindows ? 'powershell' : 'bash');
+            }
+            if (terminalSettings.onExit?.clear) {
+                exitCommands.push(isWindows ? 'clear' : 'clear');
             }
             if (terminalSettings.onExit?.close) {
                 exitCommands.push(isWindows ? 'exit' : 'exit');
@@ -266,7 +270,7 @@ export class ScriptService {
             const command = `${envSetup} ${scriptCommand}`;
 
             terminal.show();
-            terminal.sendText(command, false);
+            terminal.sendText(command);
 
             if (terminalSettings.onExit?.close) {
                 await new Promise(resolve => setTimeout(resolve, 500));
