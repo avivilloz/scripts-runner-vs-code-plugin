@@ -96,12 +96,6 @@ Each script must have a `script.json` file defining its metadata:
             "type": "text"
         },
         {
-            "name": "port",
-            "description": "Port number",
-            "default": "8080",
-            "type": "text"
-        },
-        {
             "name": "useSSL",
             "description": "Use SSL",
             "default": false,
@@ -110,16 +104,21 @@ Each script must have a `script.json` file defining its metadata:
         {
             "name": "timeout",
             "description": "Timeout in seconds",
-            "default": 30,
-            "type": "number"
+            "type": "select",
+            "default": "option2",
+            "options": [
+                "option1",
+                "option2",
+                "option3"
+            ]
         }
     ],
     "terminal": {
         "useCurrent": false,
         "onExit": {
-            "close": false,
+            "refresh": false,
             "clear": false,
-            "refresh": false
+            "close": false
         }
     }
 }
