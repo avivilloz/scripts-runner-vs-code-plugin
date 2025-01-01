@@ -8,8 +8,12 @@ export interface ScriptMetadata {
     parameters?: ParameterMetadata[];
     tags?: string[];
     terminal?: {
-        useCurrent: boolean;     // Made non-optional to ensure explicit setting
-        closeOnExit?: boolean;   // Whether to close terminal after script completion
+        useCurrent: boolean;
+        onExit?: {
+            close?: boolean;
+            clear?: boolean;
+            refresh?: boolean;
+        };
     };
 }
 

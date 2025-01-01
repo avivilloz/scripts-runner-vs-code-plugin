@@ -102,7 +102,11 @@ Each script must have a `script.json` file defining its metadata:
     ],
     "terminal": {
         "useCurrent": false,
-        "closeOnExit": true
+        "onExit" {
+            "close": false,
+            "clear": false,
+            "refresh": false
+        }
     }
 }
 ```
@@ -129,6 +133,8 @@ Each script automatically receives these environment variables:
 Scripts can be configured to:
 - Use the current terminal or create a new one
 - Close the terminal after execution
+- Clear the terminal before execution
+- Focus the terminal after execution
 - Support different scripts for Windows (PowerShell) and Unix (Bash)
 
 ### Parameter Support

@@ -169,9 +169,15 @@ export class ScriptService {
         const repoPath = this.getRepositoryPath(script.path);
         console.log('Repository path:', repoPath);
 
-        // Set default terminal settings if none provided
+        // Set default terminal settings with single onExit definition
         const terminalSettings: ScriptMetadata['terminal'] = {
             useCurrent: false,
+            onExit: {
+                close: false,
+                clear: false,
+                refresh: false,
+                ...script.metadata.terminal?.onExit
+            },
             ...script.metadata.terminal
         };
 
@@ -207,9 +213,22 @@ export class ScriptService {
             // On Windows, we need a different approach for closing PowerShell
             // const isPowershell = path.extname(script.path) === '.ps1';
             const isWindows = this.platform === 'windows';
-            const exitCommand = isWindows ?
-                (terminalSettings.closeOnExit ? '; exit' : '') :
-                (terminalSettings.closeOnExit ? ' && exit' : '');
+            let exitCommands = [];
+
+            // Build exit commands based on settings
+            if (terminalSettings.onExit?.clear) {
+                exitCommands.push(isWindows ? 'clear' : 'clear');
+            }
+            if (terminalSettings.onExit?.refresh) {
+                exitCommands.push(isWindows ? 'powershell' : 'bash');
+            }
+            if (terminalSettings.onExit?.close) {
+                exitCommands.push(isWindows ? 'exit' : 'exit');
+            }
+
+            const exitCommand = exitCommands.length > 0 ?
+                (isWindows ? '; ' : ' && ') + exitCommands.join(isWindows ? '; ' : ' && ') :
+                '';
 
             let scriptCommand = '';
             switch (path.extname(script.path)) {
@@ -247,11 +266,10 @@ export class ScriptService {
             const command = `${envSetup} ${scriptCommand}`;
 
             terminal.show();
-            terminal.sendText(command);
+            terminal.sendText(command, false);
 
-            if (terminalSettings.closeOnExit) {
+            if (terminalSettings.onExit?.close) {
                 await new Promise(resolve => setTimeout(resolve, 500));
-
                 if (!terminalSettings.useCurrent) {
                     terminal.dispose();
                     this.activeTerminal = null;
