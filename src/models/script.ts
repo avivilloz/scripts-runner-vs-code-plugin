@@ -8,7 +8,7 @@ export interface ScriptMetadata {
     parameters?: ParameterMetadata[];
     tags?: string[];
     terminal?: {
-        useCurrent: boolean;
+        new?: boolean;  // If true, creates new terminal. Defaults to false
         onExit?: {
             refresh?: boolean;
             clear?: boolean;

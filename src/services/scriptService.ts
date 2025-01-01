@@ -117,11 +117,11 @@ export class ScriptService {
         console.log('Current terminals:', vscode.window.terminals.map(t => t.name));
         console.log('Active terminal:', vscode.window.activeTerminal?.name);
 
-        if (settings?.useCurrent) {
-            // Make sure the active terminal exists and is visible
+        if (!settings?.new) {
+            // Use existing terminal if available
             if (vscode.window.activeTerminal) {
                 console.log('Using existing active terminal:', vscode.window.activeTerminal.name);
-                vscode.window.activeTerminal.show(true); // true = preserve focus
+                vscode.window.activeTerminal.show(true);
                 return vscode.window.activeTerminal;
             }
 
@@ -132,15 +132,11 @@ export class ScriptService {
                 terminal.show(true);
                 return terminal;
             }
-
-            console.log('No existing terminals found, creating new one');
-        } else {
-            console.log('useCurrent is false, creating new terminal');
         }
 
         // Create new terminal if requested or if no existing terminals
+        console.log('Creating new terminal');
         const terminal = vscode.window.createTerminal(scriptName);
-        console.log('Created new terminal:', terminal.name);
         terminal.show(true);
         return terminal;
     }
@@ -171,7 +167,7 @@ export class ScriptService {
 
         // Set default terminal settings with single onExit definition
         const terminalSettings: ScriptMetadata['terminal'] = {
-            useCurrent: false,
+            new: false,
             onExit: {
                 refresh: false,
                 clear: false,
@@ -190,7 +186,7 @@ export class ScriptService {
                 const paramValues = await this.inputFormProvider.showParameterInputForm(script.metadata.parameters);
 
                 if (!paramValues) {
-                    if (!terminalSettings.useCurrent) {
+                    if (terminalSettings.new) {  // Changed from !terminalSettings.useCurrent
                         terminal.dispose();
                     }
                     return;
@@ -273,13 +269,13 @@ export class ScriptService {
 
             if (terminalSettings.onExit?.close) {
                 await new Promise(resolve => setTimeout(resolve, 500));
-                if (!terminalSettings.useCurrent) {
+                if (terminalSettings.new) {  // Changed from !terminalSettings.useCurrent
                     terminal.dispose();
                     this.activeTerminal = null;
                 }
             }
         } catch (error: unknown) {
-            if (!terminalSettings.useCurrent) {
+            if (terminalSettings.new) {  // Changed from !terminalSettings.useCurrent
                 terminal.dispose();
                 this.activeTerminal = null;
             }

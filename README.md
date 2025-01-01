@@ -113,7 +113,7 @@ Each script must have a `script.json` file defining its metadata:
         }
     ],
     "terminal": {
-        "useCurrent": false,
+        "new": false,
         "onExit": {
             "refresh": false,
             "clear": false,
@@ -147,6 +147,7 @@ Scripts can be configured to:
 - Close the terminal after execution
 - Clear the terminal before execution
 - Focus the terminal after execution
+- Refresh the terminal after execution
 - Support different scripts for Windows (PowerShell) and Unix (Bash)
 
 ### Parameter Support
