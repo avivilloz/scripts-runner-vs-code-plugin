@@ -225,9 +225,9 @@ export class ScriptService {
                 exitCommands.push(isWindows ? 'exit' : 'exit');
             }
 
+            // Use semicolon as command separator for both platforms
             const exitCommand = exitCommands.length > 0 ?
-                (isWindows ? '; ' : ' && ') + exitCommands.join(isWindows ? '; ' : ' && ') :
-                '';
+                '; ' + exitCommands.join('; ') : '';
 
             let scriptCommand = '';
             switch (path.extname(script.path)) {
@@ -265,7 +265,7 @@ export class ScriptService {
             const command = `${envSetup} ${scriptCommand}`;
 
             terminal.show();
-            terminal.sendText(command);
+            terminal.sendText(command, false);
 
             if (terminalSettings.onExit?.close) {
                 await new Promise(resolve => setTimeout(resolve, 500));
