@@ -92,7 +92,6 @@ Each script must have a `script.json` file defining its metadata:
         {
             "name": "host",
             "description": "Target hostname",
-            "required": true,
             "type": "text"
         },
         {

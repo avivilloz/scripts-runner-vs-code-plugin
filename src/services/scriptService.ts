@@ -197,11 +197,10 @@ export class ScriptService {
                 }
 
                 for (const param of script.metadata.parameters) {
+                    // Get value or default - no need to check if required
                     const value = paramValues.get(param.name);
-                    if (param.required && !value) {
-                        throw new Error(`Required parameter ${param.name} not provided`);
-                    }
 
+                    // Always add value since form validation ensures all parameters have values
                     if (value || param.default !== undefined) {
                         // Convert default value to string if it's boolean
                         const defaultValue = typeof param.default === 'boolean'

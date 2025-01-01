@@ -21,7 +21,6 @@ export interface ParameterMetadata {
     name: string;
     description: string;
     type?: 'text' | 'select' | 'boolean';
-    required?: boolean;
     options?: string[];                     // Available options for 'select' type
     default?: string | boolean;             // Allow both string and boolean defaults
 }

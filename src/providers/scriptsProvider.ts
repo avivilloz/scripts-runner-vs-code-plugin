@@ -85,7 +85,7 @@ export class ScriptsProvider implements vscode.TreeDataProvider<Script> {
                 const defaultValue = p.type === 'boolean'
                     ? `(default: ${p.default ? 'true' : 'false'})`
                     : p.default ? `(default: ${p.default})` : '';
-                tooltip.appendMarkdown(`- \`${p.name}\`${p.required ? ' (required)' : ''}: ${p.description} ${defaultValue}\n`);
+                tooltip.appendMarkdown(`- \`${p.name}\`: ${p.description} ${defaultValue}\n`);
             });
         }
 

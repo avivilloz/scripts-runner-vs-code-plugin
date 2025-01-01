@@ -54,7 +54,7 @@ export class InputFormProvider {
             const inputHtml = this.getInputHtml(param);
             return `
                 <div class="form-group">
-                    <label for="${param.name}" class="param-label">${param.name}${param.required ? ' *' : ''}</label>
+                    <label for="${param.name}" class="param-label">${param.name}</label>
                     <div class="input-container">
                         ${inputHtml}
                         <div class="description">${param.description}</div>
@@ -166,38 +166,57 @@ export class InputFormProvider {
                     ${inputs}
                     <div class="buttons">
                         <button type="button" id="cancelBtn">Cancel</button>
-                        <button type="submit">Run Script</button>
+                        <button type="submit" id="submitBtn" disabled>Run Script</button>
                     </div>
                 </form>
                 <script>
                     const vscode = acquireVsCodeApi();
-                    document.getElementById('paramForm').addEventListener('submit', (e) => {
+                    const form = document.getElementById('paramForm');
+                    const submitBtn = document.getElementById('submitBtn');
+
+                    // Validate form and update submit button state
+                    function validateForm() {
+                        const params = ${JSON.stringify(parameters)};
+                        const isValid = params.every(param => {
+                            const input = document.getElementById(param.name);
+                            if (param.type === 'boolean') return true;
+                            if (param.type === 'select') return input.value !== '';
+                            return input.value.trim() !== '';
+                        });
+                        submitBtn.disabled = !isValid;
+                    }
+
+                    // Add validation on input changes
+                    form.addEventListener('input', validateForm);
+                    form.addEventListener('change', validateForm);
+
+                    // Initial validation
+                    validateForm();
+
+                    form.addEventListener('submit', (e) => {
                         e.preventDefault();
                         const values = {};
-
+                        
                         // Process each parameter
                         const params = ${JSON.stringify(parameters)};
                         params.forEach(param => {
                             const input = document.getElementById(param.name);
                             if (param.type === 'boolean') {
-                                // For checkboxes, directly use the checked state
                                 values[param.name] = input.checked ? 'true' : 'false';
-                                console.log(\`Checkbox \${param.name}: \${input.checked}\`); // Debug
                             } else {
-                                const formData = new FormData(e.target);
-                                const value = formData.get(param.name);
+                                const value = new FormData(e.target).get(param.name);
                                 if (value !== null) {
                                     values[param.name] = value;
                                 }
                             }
                         });
 
-                        console.log('Sending values:', values); // Debug
                         vscode.postMessage({ 
                             command: 'submit', 
                             values: values 
                         });
                     });
+
                     document.getElementById('cancelBtn').addEventListener('click', () => {
                         vscode.postMessage({ command: 'cancel' });
                     });
@@ -219,7 +238,7 @@ export class InputFormProvider {
                     <select 
                         id="${param.name}" 
                         name="${param.name}"
-                        ${param.required ? 'required' : ''}
+                        required
                     >
                         <option value="">Select an option...</option>
                         ${param.options.map(opt => `
@@ -260,7 +279,7 @@ export class InputFormProvider {
                 name="${param.name}" 
                 value="${defaultValue}"
                 placeholder="${param.description}"
-                ${param.required ? 'required' : ''}
+                required
             />`;
     }
 }
