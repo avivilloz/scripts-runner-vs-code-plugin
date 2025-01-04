@@ -41,16 +41,6 @@
                 "icon": "$(clear-all)"
             },
             {
-                "command": "scripts-runner.enable",
-                "title": "Enable Scripts Runner",
-                "category": "Scripts Runner"
-            },
-            {
-                "command": "scripts-runner.disable",
-                "title": "Disable Scripts Runner",
-                "category": "Scripts Runner"
-            },
-            {
                 "command": "scripts-runner.configureSource",
                 "title": "Manage Sources",
                 "icon": "$(gear)"
@@ -105,11 +95,6 @@
         "configuration": {
             "title": "Scripts Runner",
             "properties": {
-                "scriptsRunner.enabled": {
-                    "type": "boolean",
-                    "default": true,
-                    "description": "Enable/disable Scripts Runner"
-                },
                 "scriptsRunner.sources": {
                     "type": "array",
                     "items": {
@@ -149,7 +134,10 @@
                         }
                     },
                     "default": [],
-                    "description": "Script sources configuration"
+                    "description": "Script sources configuration",
+                    "editPresentation": "multilineJson",
+                    "order": 1,
+                    "markdownDescription": "Script sources configuration. Click [Manage Sources](command:scripts-runner.configureSource) to open the configuration UI."
                 }
             }
         }
