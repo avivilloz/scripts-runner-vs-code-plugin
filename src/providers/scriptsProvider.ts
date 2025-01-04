@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
-import { GitService } from '../services/gitService';
+import { ScriptsSourceService } from '../services/scriptsSourceService'; // Updated import
 import { ScriptService } from '../services/scriptService';
 import { Script } from '../models/script';
 
@@ -14,7 +14,7 @@ export class ScriptsProvider implements vscode.TreeDataProvider<Script> {
     private scripts: Script[] = [];
 
     constructor(
-        private gitService: GitService,
+        private scriptsSourceService: ScriptsSourceService,  // Updated type
         private scriptService: ScriptService
     ) { }
 
@@ -98,7 +98,7 @@ export class ScriptsProvider implements vscode.TreeDataProvider<Script> {
     async getChildren(): Promise<Script[]> {
         try {
             if (this.scripts.length === 0) {
-                const scriptsPaths = this.gitService.getAllScriptsPaths();
+                const scriptsPaths = this.scriptsSourceService.getAllScriptsPaths();
                 this.scripts = await this.scriptService.findScripts(scriptsPaths);
             }
 

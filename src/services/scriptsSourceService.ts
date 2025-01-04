@@ -3,14 +3,23 @@ import * as path from 'path';
 import simpleGit, { SimpleGit } from 'simple-git';
 import * as fs from 'fs';
 
-interface RepoConfig {
-    url: string;
-    branch?: string;
-    scriptsPath?: string;
-    name?: string;
+interface GitRepoConfig {
+    type: 'git';
+    name?: string;           // Optional: Human-readable name for the source
+    url: string;            // Required: Git repository URL
+    branch?: string;        // Optional: Branch to checkout
+    scriptsPath?: string;   // Optional: Path to scripts directory within repo
 }
 
-export class GitService {
+interface LocalPathConfig {
+    type: 'local';
+    name?: string;          // Optional: Human-readable name for the source
+    path: string;           // Required: Direct path to scripts directory
+}
+
+type ScriptsSourceConfig = GitRepoConfig | LocalPathConfig;
+
+export class ScriptsSourceService {
     private workspacePath: string;
 
     constructor(private context: vscode.ExtensionContext) {
@@ -29,21 +38,24 @@ export class GitService {
 
     async syncRepositories(): Promise<void> {
         const config = vscode.workspace.getConfiguration('scriptsRunner');
-        const repositories = config.get<RepoConfig[]>('repositories', []);
+        const sources = config.get<ScriptsSourceConfig[]>('sources', []);
 
-        if (repositories.length === 0) {
-            throw new Error('No repositories configured');
+        if (sources.length === 0) {
+            throw new Error('No script sources configured');
         }
 
-        for (const repo of repositories) {
-            await this.syncSingleRepository(repo);
+        for (const source of sources) {
+            if (source.type === 'git') {
+                await this.syncGitRepository(source);
+            } else {
+                await this.validateLocalPath(source);
+            }
         }
     }
 
-    private async syncSingleRepository(config: RepoConfig): Promise<void> {
+    private async syncGitRepository(config: GitRepoConfig): Promise<void> {
         const repoPath = this.getRepoPath(config.url);
-        console.log('Syncing repository:', config.url);
-        console.log('Repository path:', repoPath);
+        console.log('Syncing git repository:', config.url);
 
         try {
             // Remove existing directory if it exists
@@ -91,14 +103,33 @@ export class GitService {
         }
     }
 
-    getAllScriptsPaths(): string[] {
-        const config = vscode.workspace.getConfiguration('scriptsRunner');
-        const repositories = config.get<RepoConfig[]>('repositories', []);
+    private async validateLocalPath(config: LocalPathConfig): Promise<void> {
+        console.log('Validating local path:', config.path);
 
-        return repositories.map(repo => this.getScriptsPath(repo, this.getRepoPath(repo.url)));
+        if (!path.isAbsolute(config.path)) {
+            throw new Error(`Local path must be absolute: ${config.path}`);
+        }
+
+        if (!fs.existsSync(config.path)) {
+            throw new Error(`Scripts path does not exist: ${config.path}`);
+        }
     }
 
-    private getScriptsPath(config: RepoConfig, repoPath: string): string {
-        return path.join(repoPath, config.scriptsPath || 'scripts');
+    getAllScriptsPaths(): string[] {
+        const config = vscode.workspace.getConfiguration('scriptsRunner');
+        const sources = config.get<ScriptsSourceConfig[]>('sources', []);
+
+        return sources.map(source => {
+            if (source.type === 'git') {
+                return path.join(this.getRepoPath(source.url), source.scriptsPath || 'scripts');
+            } else {
+                return source.path;
+            }
+        });
+    }
+
+    // Changed method signature to use GitRepoConfig instead of non-existent BaseConfig
+    private getScriptsPath(config: GitRepoConfig, basePath: string): string {
+        return path.join(basePath, config.scriptsPath || 'scripts');
     }
 }

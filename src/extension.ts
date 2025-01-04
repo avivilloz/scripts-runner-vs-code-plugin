@@ -1,14 +1,22 @@
 import * as vscode from 'vscode';
-import { GitService } from './services/gitService';
+import { ScriptsSourceService } from './services/scriptsSourceService';  // Updated import
 import { ScriptService } from './services/scriptService';
 import { ScriptsProvider } from './providers/scriptsProvider';
+import { SourceConfigProvider } from './services/sourceConfigProvider';
 
 export async function activate(context: vscode.ExtensionContext) {
     console.log('Scripts Runner extension is being activated');
 
-    const gitService = new GitService(context);
+    const scriptsSourceService = new ScriptsSourceService(context);  // Updated variable name
     const scriptService = new ScriptService();
-    const scriptsProvider = new ScriptsProvider(gitService, scriptService);
+    const scriptsProvider = new ScriptsProvider(scriptsSourceService, scriptService);  // Updated parameter
+    const sourceConfigProvider = new SourceConfigProvider(
+        context,
+        async () => {
+            await scriptsSourceService.syncRepositories();
+            await scriptsProvider.refresh();
+        }
+    );
 
     // Register tree data provider
     console.log('Registering tree data provider');
@@ -39,35 +47,18 @@ export async function activate(context: vscode.ExtensionContext) {
             return;
         }
         try {
-            await gitService.syncRepositories();
-            // Wait for the provider to refresh completely
+            await scriptsSourceService.syncRepositories();
             await scriptsProvider.refresh();
-            // Show success message
             vscode.window.showInformationMessage('Scripts refreshed successfully');
         } catch (error: any) {
-            if (error.message === 'Repository URL not configured') {
+            if (error.message === 'No script sources configured') {
                 const result = await vscode.window.showErrorMessage(
-                    'Repository URL not configured. Would you like to configure it now?',
+                    'No script sources configured. Would you like to add one now?',
                     'Yes',
                     'No'
                 );
                 if (result === 'Yes') {
-                    const url = await vscode.window.showInputBox({
-                        prompt: 'Enter the Git repository URL containing your scripts',
-                        placeHolder: 'https://github.com/username/repo.git'
-                    });
-                    if (url) {
-                        const branch = await vscode.window.showInputBox({
-                            prompt: 'Enter the branch name (leave empty for default branch)',
-                            placeHolder: 'main'
-                        });
-                        await vscode.workspace.getConfiguration('scriptsRunner').update('repositoryUrl', url, true);
-                        if (branch) {
-                            await vscode.workspace.getConfiguration('scriptsRunner').update('branch', branch, true);
-                        }
-                        await gitService.syncRepositories();
-                        scriptsProvider.refresh();
-                    }
+                    sourceConfigProvider.show();
                 }
             } else {
                 vscode.window.showErrorMessage(`Error: ${error.message}`);
@@ -155,6 +146,10 @@ export async function activate(context: vscode.ExtensionContext) {
         updateCommandIcons();
     });
 
+    let configureSourceCommand = vscode.commands.registerCommand('scripts-runner.configureSource', () => {
+        sourceConfigProvider.show();
+    });
+
     context.subscriptions.push(
         refreshCommand,
         executeCommand,
@@ -162,7 +157,8 @@ export async function activate(context: vscode.ExtensionContext) {
         filterCommand,
         clearFiltersCommand,
         enableCommand,
-        disableCommand
+        disableCommand,
+        configureSourceCommand
     );
 
     console.log('Scripts Runner extension activated successfully');
