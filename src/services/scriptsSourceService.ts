@@ -3,18 +3,22 @@ import * as path from 'path';
 import simpleGit, { SimpleGit } from 'simple-git';
 import * as fs from 'fs';
 
-interface GitRepoConfig {
-    type: 'git';
-    name?: string;           // Optional: Human-readable name for the source
-    url: string;            // Required: Git repository URL
-    branch?: string;        // Optional: Branch to checkout
-    scriptsPath?: string;   // Optional: Path to scripts directory within repo
+interface BaseConfig {
+    type: 'git' | 'local';
+    name?: string;
+    enabled?: boolean;
 }
 
-interface LocalPathConfig {
+interface GitRepoConfig extends BaseConfig {
+    type: 'git';
+    url: string;
+    branch?: string;
+    scriptsPath?: string;
+}
+
+interface LocalPathConfig extends BaseConfig {
     type: 'local';
-    name?: string;          // Optional: Human-readable name for the source
-    path: string;           // Required: Direct path to scripts directory
+    path: string;
 }
 
 type ScriptsSourceConfig = GitRepoConfig | LocalPathConfig;
@@ -119,13 +123,15 @@ export class ScriptsSourceService {
         const config = vscode.workspace.getConfiguration('scriptsRunner');
         const sources = config.get<ScriptsSourceConfig[]>('sources', []);
 
-        return sources.map(source => {
-            if (source.type === 'git') {
-                return path.join(this.getRepoPath(source.url), source.scriptsPath || 'scripts');
-            } else {
-                return source.path;
-            }
-        });
+        return sources
+            .filter(source => source.enabled !== false)  // treat undefined as enabled
+            .map(source => {
+                if (source.type === 'git') {
+                    return path.join(this.getRepoPath(source.url), source.scriptsPath || 'scripts');
+                } else {
+                    return source.path;
+                }
+            });
     }
 
     // Changed method signature to use GitRepoConfig instead of non-existent BaseConfig

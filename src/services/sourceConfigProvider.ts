@@ -74,8 +74,32 @@ export class SourceConfigProvider {
                         vscode.window.showErrorMessage('Failed to remove source');
                     }
                     break;
+                case 'toggleSource':
+                    try {
+                        await this.toggleSource(message.name, message.enabled);
+                        vscode.window.showInformationMessage(
+                            `Source ${message.enabled ? 'enabled' : 'disabled'} successfully`
+                        );
+                    } catch (error) {
+                        vscode.window.showErrorMessage('Failed to update source');
+                    }
+                    break;
             }
         });
+    }
+
+    private async toggleSource(name: string, enabled: boolean): Promise<void> {
+        const config = vscode.workspace.getConfiguration('scriptsRunner');
+        const sources = config.get<any[]>('sources', []);
+        const updatedSources = sources.map(source =>
+            source.name === name ? { ...source, enabled } : source
+        );
+        await config.update('sources', updatedSources, true);
+        this.panel?.webview.postMessage({
+            command: 'updateSources',
+            sources: updatedSources
+        });
+        await this.onSourceAdded(); // Refresh scripts list
     }
 
     private getWebviewContent() {
@@ -165,6 +189,17 @@ export class SourceConfigProvider {
                     margin-bottom: 1rem;
                     color: var(--vscode-foreground);
                 }
+                .source-actions {
+                    display: flex;
+                    gap: 0.5rem;
+                }
+                .source-item.disabled {
+                    opacity: 0.6;
+                }
+                .toggle-btn {
+                    background: var(--vscode-button-secondaryBackground);
+                    color: var(--vscode-button-secondaryForeground);
+                }
             </style>
         </head>
         <body>
@@ -235,14 +270,20 @@ export class SourceConfigProvider {
                         const details = source.type === 'git' 
                             ? \`Git: \${source.url}\${source.branch ? \` (\${source.branch})\` : ''}\`
                             : \`Local: \${source.path}\`;
+                        const enabled = source.enabled !== false;  // treat undefined as enabled
                         
                         return \`
-                            <div class="source-item">
+                            <div class="source-item \${!enabled ? 'disabled' : ''}">
                                 <div class="source-info">
                                     <div class="source-name">\${source.name}</div>
                                     <div class="source-detail">\${details}</div>
                                 </div>
-                                <button type="button" onclick="removeSource('\${source.name}')" class="delete-btn">Remove</button>
+                                <div class="source-actions">
+                                    <button type="button" onclick="toggleSource('\${source.name}', \${!enabled})" class="toggle-btn">
+                                        \${enabled ? 'Disable' : 'Enable'}
+                                    </button>
+                                    <button type="button" onclick="removeSource('\${source.name}')" class="delete-btn">Remove</button>
+                                </div>
                             </div>
                         \`;
                     }).join('') || '<div class="source-item">No sources configured</div>';
@@ -327,6 +368,15 @@ export class SourceConfigProvider {
                 browseButton.addEventListener('click', () => {
                     vscode.postMessage({ command: 'browseLocalPath' });
                 });
+
+                // Add toggle source function to window
+                window.toggleSource = (sourceName, enable) => {
+                    vscode.postMessage({ 
+                        command: 'toggleSource',
+                        name: sourceName,
+                        enabled: enable
+                    });
+                };
             </script>
         </body>
         </html>`;
