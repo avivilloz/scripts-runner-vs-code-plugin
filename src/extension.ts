@@ -18,6 +18,9 @@ export async function activate(context: vscode.ExtensionContext) {
         }
     );
 
+    // Initialize built-in sources
+    await scriptsSourceService.initializeBuiltInSources();
+
     // Register tree data provider
     console.log('Registering tree data provider');
     vscode.window.registerTreeDataProvider('scriptsExplorer', scriptsProvider);

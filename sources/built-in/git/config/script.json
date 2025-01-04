@@ -1,0 +1,38 @@
+{
+    "name": "Git Config",
+    "description": "Configure Git user settings (name and email)",
+    "category": "Git",
+    "tags": ["git", "config"],
+    "platforms": {
+        "windows": ["script.ps1"],
+        "linux": ["script.sh"],
+        "darwin": ["script.sh"]
+    },
+    "terminal": {
+        "onExit": {
+            "refresh": true
+        }
+    },
+    "parameters": [
+        {
+            "name": "name",
+            "description": "Git user name",
+            "type": "text"
+        },
+        {
+            "name": "email",
+            "description": "Git user email",
+            "type": "text"
+        },
+        {
+            "name": "scope",
+            "description": "Git config scope",
+            "type": "select",
+            "default": "local",
+            "options": [
+                "local",
+                "global"
+            ]
+        }
+    ]
+}

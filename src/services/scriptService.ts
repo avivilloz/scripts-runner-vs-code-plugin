@@ -157,15 +157,26 @@ export class ScriptService {
         return currentPath;
     }
 
+    private getSourcePath(scriptPath: string): string {
+        // Walk up until we find the 'sources' directory
+        let currentPath = path.dirname(scriptPath);
+
+        while (currentPath && path.dirname(currentPath) !== currentPath) {
+            if (path.basename(path.dirname(currentPath)) === 'sources') {
+                return currentPath;
+            }
+            currentPath = path.dirname(currentPath);
+        }
+
+        return currentPath;
+    }
+
     async executeScript(script: Script): Promise<void> {
         console.log('Executing script:', script.metadata.name);
-        console.log('Terminal settings:', script.metadata.terminal);
 
-        // Get repository path for environment variable
-        const repoPath = this.getRepositoryPath(script.path);
-        console.log('Repository path:', repoPath);
+        const sourcePath = this.getSourcePath(script.path);
+        console.log('Source path:', sourcePath);
 
-        // Set default terminal settings with single onExit definition
         const terminalSettings: ScriptMetadata['terminal'] = {
             new: false,
             onExit: {
@@ -245,8 +256,7 @@ export class ScriptService {
             // Prepare environment variables
             const env: Record<string, string> = {
                 SCRIPT_PATH: script.path,
-                SCRIPTS_REPO_PATH: repoPath,
-                // Add more built-in variables as needed
+                SOURCE_PATH: sourcePath,
             };
 
             // Build environment variable export commands

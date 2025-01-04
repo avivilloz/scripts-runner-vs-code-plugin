@@ -200,6 +200,18 @@ export class SourceConfigProvider {
                     background: var(--vscode-button-secondaryBackground);
                     color: var(--vscode-button-secondaryForeground);
                 }
+                .built-in {
+                    background: var(--vscode-editor-inactiveSelectionBackground);
+                }
+                .built-in-badge {
+                    font-size: 0.8em;
+                    background: var(--vscode-badge-background);
+                    color: var(--vscode-badge-foreground);
+                    padding: 2px 6px;
+                    border-radius: 3px;
+                    margin-left: 8px;
+                    vertical-align: middle;
+                }
             </style>
         </head>
         <body>
@@ -270,19 +282,27 @@ export class SourceConfigProvider {
                         const details = source.type === 'git' 
                             ? \`Git: \${source.url}\${source.branch ? \` (\${source.branch})\` : ''}\`
                             : \`Local: \${source.path}\`;
-                        const enabled = source.enabled !== false;  // treat undefined as enabled
+                        const enabled = source.enabled !== false;
+                        const isBuiltIn = source.builtIn === true;
                         
                         return \`
-                            <div class="source-item \${!enabled ? 'disabled' : ''}">
+                            <div class="source-item \${!enabled ? 'disabled' : ''} \${isBuiltIn ? 'built-in' : ''}">
                                 <div class="source-info">
-                                    <div class="source-name">\${source.name}</div>
+                                    <div class="source-name">
+                                        \${source.name}
+                                        \${isBuiltIn ? '<span class="built-in-badge">Built-in</span>' : ''}
+                                    </div>
                                     <div class="source-detail">\${details}</div>
                                 </div>
                                 <div class="source-actions">
                                     <button type="button" onclick="toggleSource('\${source.name}', \${!enabled})" class="toggle-btn">
                                         \${enabled ? 'Disable' : 'Enable'}
                                     </button>
-                                    <button type="button" onclick="removeSource('\${source.name}')" class="delete-btn">Remove</button>
+                                    \${!isBuiltIn ? \`
+                                        <button type="button" onclick="removeSource('\${source.name}')" class="delete-btn">
+                                            Remove
+                                        </button>
+                                    \` : ''}
                                 </div>
                             </div>
                         \`;

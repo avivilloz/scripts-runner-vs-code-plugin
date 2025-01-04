@@ -142,7 +142,7 @@ Each script must have a `script.json` file defining its metadata:
 Each script automatically receives these environment variables:
 
 - `SCRIPT_PATH`: Full path to the executing script file
-- `SCRIPTS_REPO_PATH`: Root path of the repository containing the script
+- `SOURCE_PATH`: Root path of the repository containing the script
 
 ## Features
 

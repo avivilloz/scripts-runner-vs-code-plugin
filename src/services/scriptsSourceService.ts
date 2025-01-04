@@ -2,11 +2,13 @@ import * as vscode from 'vscode';
 import * as path from 'path';
 import simpleGit, { SimpleGit } from 'simple-git';
 import * as fs from 'fs';
+import { getUserSourcesPath, ensureUserSourcesDirectory } from '../utils/pathUtils';
 
 interface BaseConfig {
     type: 'git' | 'local';
     name?: string;
     enabled?: boolean;
+    builtIn?: boolean;  // New property
 }
 
 interface GitRepoConfig extends BaseConfig {
@@ -24,23 +26,25 @@ interface LocalPathConfig extends BaseConfig {
 type ScriptsSourceConfig = GitRepoConfig | LocalPathConfig;
 
 export class ScriptsSourceService {
-    private workspacePath: string;
+    private userSourcesPath: string;
+    private builtInSourcesPath: string;
 
     constructor(private context: vscode.ExtensionContext) {
-        this.workspacePath = path.join(context.globalStorageUri.fsPath, 'scripts-repos');
-        if (!fs.existsSync(this.workspacePath)) {
-            fs.mkdirSync(this.workspacePath, { recursive: true });
-        }
+        this.userSourcesPath = getUserSourcesPath();
+        this.builtInSourcesPath = path.join(context.extensionPath, 'sources');
     }
 
     private getRepoPath(repoUrl: string): string {
         // Create a safe directory name from the repo URL
         const repoName = repoUrl.split('/').pop()?.replace('.git', '') ||
             Buffer.from(repoUrl).toString('base64');
-        return path.join(this.workspacePath, repoName);
+        return path.join(this.userSourcesPath, repoName);
     }
 
     async syncRepositories(): Promise<void> {
+        // Ensure the scripts directory exists
+        await ensureUserSourcesDirectory();
+
         const config = vscode.workspace.getConfiguration('scriptsRunner');
         const sources = config.get<ScriptsSourceConfig[]>('sources', []);
 
@@ -49,9 +53,9 @@ export class ScriptsSourceService {
         }
 
         for (const source of sources) {
-            if (source.type === 'git') {
+            if (source.type === 'git' && source.enabled !== false) {
                 await this.syncGitRepository(source);
-            } else {
+            } else if (source.type === 'local') {
                 await this.validateLocalPath(source);
             }
         }
@@ -126,16 +130,43 @@ export class ScriptsSourceService {
         return sources
             .filter(source => source.enabled !== false)  // treat undefined as enabled
             .map(source => {
+                if (source.builtIn) {
+                    return path.join(this.builtInSourcesPath, 'built-in');
+                }
                 if (source.type === 'git') {
                     return path.join(this.getRepoPath(source.url), source.scriptsPath || 'scripts');
-                } else {
-                    return source.path;
                 }
+                return source.path;
             });
     }
 
     // Changed method signature to use GitRepoConfig instead of non-existent BaseConfig
     private getScriptsPath(config: GitRepoConfig, basePath: string): string {
         return path.join(basePath, config.scriptsPath || 'scripts');
+    }
+
+    async initializeBuiltInSources(): Promise<void> {
+        await ensureUserSourcesDirectory();
+
+        const builtInPath = path.join(this.builtInSourcesPath, 'built-in');
+        if (!fs.existsSync(builtInPath)) {
+            console.warn('No built-in scripts found in extension');
+            return;
+        }
+
+        // Add built-in source to configuration if not present
+        const config = vscode.workspace.getConfiguration('scriptsRunner');
+        const sources = config.get<ScriptsSourceConfig[]>('sources', []);
+
+        if (!sources.some(s => s.builtIn)) {
+            sources.push({
+                type: 'local',
+                name: 'Built-in Scripts',
+                path: builtInPath,  // Point directly to extension's scripts
+                builtIn: true,
+                enabled: true
+            });
+            await config.update('sources', sources, true);
+        }
     }
 }

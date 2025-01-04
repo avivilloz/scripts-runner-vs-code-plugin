@@ -1,0 +1,30 @@
+{
+    "name": "Generate SSH Key",
+    "description": "Generates SSH key",
+    "category": "SSH",
+    "tags": ["ssh", "security"],
+    "platforms": {
+        "windows": ["script.ps1"],
+        "linux": ["script.sh"],
+        "darwin": ["script.sh"]
+    },
+    "parameters": [
+        {
+            "name": "alias",
+            "description": "Alias for the SSH key file",
+            "type": "text"
+        },
+        {
+            "name": "is_wsl",
+            "description": "Is running under Windows Subsystem for Linux",
+            "type": "boolean",
+            "default": false
+        },
+        {
+            "name": "windows_username",
+            "description": "Windows username (required if is_wsl is true)",
+            "type": "text",
+            "default": "Username"
+        }
+    ]
+}

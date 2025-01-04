@@ -16,7 +16,9 @@
     "categories": [
         "Other"
     ],
-    "activationEvents": [],
+    "activationEvents": [
+        "onStartupFinished"
+    ],
     "main": "./out/extension.js",
     "contributes": {
         "commands": [
@@ -130,6 +132,11 @@
                             "scriptsPath": {
                                 "type": "string",
                                 "description": "Path to scripts directory within the repository"
+                            },
+                            "builtIn": {
+                                "type": "boolean",
+                                "description": "Indicates if this is a built-in source",
+                                "default": false
                             }
                         }
                     },
@@ -170,5 +177,9 @@
         "glob": "^8.0.0",
         "@vscode/test-electron": "^2.3.8",
         "@vscode/vsce": "^2.24.0"
-    }
+    },
+    "files": [
+        "out/**/*",
+        "sources/**/*"
+    ]
 }
