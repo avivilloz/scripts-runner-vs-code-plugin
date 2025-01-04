@@ -24,6 +24,9 @@ node_modules/**
 !README.md
 !LICENSE
 
+# Include sources directory
+!sources/**
+
 # Development files
 test/**
 package-lock.json

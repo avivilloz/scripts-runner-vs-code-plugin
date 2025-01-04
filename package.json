@@ -177,9 +177,5 @@
         "glob": "^8.0.0",
         "@vscode/test-electron": "^2.3.8",
         "@vscode/vsce": "^2.24.0"
-    },
-    "files": [
-        "out/**/*",
-        "sources/**/*"
-    ]
+    }
 }
