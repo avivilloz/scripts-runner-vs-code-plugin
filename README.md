@@ -25,26 +25,30 @@ Configure the extension through VS Code settings. You can add multiple script so
 
 ```json
 {
-    "scriptsRunner.repositories": [
+    "scriptsRunner.sources": [
         {
             "name": "Team Scripts",
+            "type": "git",
             "url": "https://github.com/team/scripts.git",
             "branch": "main",
             "scriptsPath": "scripts"
         },
         {
             "name": "Infrastructure Scripts",
+            "type": "git",
             "url": "git@github.com:team/infrastructure.git",
             "branch": "develop",
             "scriptsPath": "automation/scripts"
         },
         {
             "name": "Personal Scripts",
+            "type": "git",
             "url": "https://github.com/user/tools.git",
             "scriptsPath": "powershell-scripts"
         },
         {
             "name": "Local Scripts",
+            "type": "local",
             "path": "/path/to/local/scripts",
             "scriptsPath": "scripts"
         }
