@@ -43,14 +43,9 @@
                 "icon": "$(clear-all)"
             },
             {
-                "command": "scripts-runner.configureSource",
-                "title": "Manage Sources",
+                "command": "scripts-runner.settings",
+                "title": "Settings",
                 "icon": "$(gear)"
-            },
-            {
-                "command": "scripts-runner.configureFileExtensions",
-                "title": "Manage File Extensions",
-                "icon": "$(file-code)"
             }
         ],
         "viewsContainers": {
@@ -93,14 +88,9 @@
                     "group": "navigation"
                 },
                 {
-                    "command": "scripts-runner.configureSource",
+                    "command": "scripts-runner.settings",
                     "when": "view == scriptsExplorer",
                     "group": "navigation@0"
-                },
-                {
-                    "command": "scripts-runner.configureFileExtensions",
-                    "when": "view == scriptsExplorer",
-                    "group": "navigation@1"
                 }
             ]
         },
@@ -193,7 +183,8 @@
                     "default": [],
                     "description": "File extension command mappings",
                     "editPresentation": "multilineJson",
-                    "order": 2
+                    "order": 2,
+                    "markdownDescription": "File extension command mappings. Click [Manage File Extensions](command:scripts-runner.configureFileExtensions) to open the configuration UI."
                 }
             }
         },

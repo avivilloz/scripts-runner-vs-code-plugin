@@ -4,6 +4,8 @@ import { ScriptService } from './services/scriptService';
 import { ScriptsProvider } from './providers/scriptsProvider';
 import { SourceConfigProvider } from './services/sourceConfigProvider';
 import { FileExtensionConfigProvider } from './services/fileExtensionConfigProvider';
+import * as path from 'path';
+import * as os from 'os';
 
 export async function activate(context: vscode.ExtensionContext) {
     console.log('Scripts Runner extension is being activated');
@@ -165,17 +167,35 @@ export async function activate(context: vscode.ExtensionContext) {
         updateCommandIcons();
     });
 
-    let configureSourceCommand = vscode.commands.registerCommand('scripts-runner.configureSource', () => {
-        sourceConfigProvider.show();
-    });
+    // Replace separate configuration commands with a single settings command
+    let settingsCommand = vscode.commands.registerCommand('scripts-runner.settings', async () => {
+        const items = [
+            {
+                label: "Manage Sources",
+                description: "Configure script sources",
+                action: () => sourceConfigProvider.show()
+            },
+            {
+                label: "Manage File Extensions",
+                description: "Configure file extension commands",
+                action: () => fileExtensionConfigProvider.show()
+            },
+            {
+                label: "Open Settings",
+                description: "Edit configuration in Settings UI",
+                action: () => vscode.commands.executeCommand('workbench.action.openSettings', 'scriptsRunner')
+            }
+        ];
 
-    // Add new command for configuring file extensions
-    let configureFileExtensionsCommand = vscode.commands.registerCommand(
-        'scripts-runner.configureFileExtensions',
-        () => {
-            fileExtensionConfigProvider.show();
+        const selected = await vscode.window.showQuickPick(items, {
+            placeHolder: 'Select a settings option',
+            matchOnDescription: true
+        });
+
+        if (selected) {
+            selected.action();
         }
-    );
+    });
 
     context.subscriptions.push(
         refreshCommand,
@@ -183,8 +203,7 @@ export async function activate(context: vscode.ExtensionContext) {
         searchCommand,
         filterCommand,
         clearFiltersCommand,
-        configureSourceCommand,
-        configureFileExtensionsCommand
+        settingsCommand  // Add the new unified settings command
     );
 
     console.log('Scripts Runner extension activated successfully');
