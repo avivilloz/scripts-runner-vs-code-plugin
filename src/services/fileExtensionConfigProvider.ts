@@ -206,7 +206,7 @@ export class FileExtensionConfigProvider {
                     
                     const commandInput = document.createElement('input');
                     commandInput.placeholder = 'Command';
-                    commandInput.style.width = '200px';
+                    commandInput.style.width = '400px';  // Changed from 200px to 300px
                     commandInput.value = config?.command || '';
                     commandInput.disabled = !isNew && !config?.editing;
 
