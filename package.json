@@ -147,7 +147,14 @@
                     "markdownDescription": "Script sources configuration. Click [Manage Sources](command:scripts-runner.configureSource) to open the configuration UI."
                 }
             }
-        }
+        },
+        "keybindings": [
+            {
+                "command": "workbench.view.extension.scripts-runner",
+                "key": "ctrl+alt+s",
+                "when": "true"
+            }
+        ]
     },
     "scripts": {
         "vscode:prepublish": "npm run compile",
