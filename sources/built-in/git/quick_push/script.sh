@@ -14,7 +14,7 @@ source "$SOURCE_PATH/utils/common.sh"
 print_separator "Checking Parameters"
 MODE="${1:-all}"
 MESSAGE="${2:-updating repository}"
-NEW_BRANCH="${3:-}"
+NEW_BRANCH="${3:-none}"
 check_parameter "MODE" "$MODE"
 check_parameter "MESSAGE" "$MESSAGE"
 
@@ -22,7 +22,7 @@ check_parameter "MESSAGE" "$MESSAGE"
 
 print_separator "Starting Git Push"
 
-if [ -n "$NEW_BRANCH" ]; then
+if [ "$NEW_BRANCH" != "none" ]; then
     echo "Creating new branch: $NEW_BRANCH"
     if ! git checkout -b "$NEW_BRANCH"; then
         echo "Failed to create new branch"

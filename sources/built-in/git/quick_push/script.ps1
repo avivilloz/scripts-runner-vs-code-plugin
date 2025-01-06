@@ -12,7 +12,7 @@ Import-Module $modulePath -Force
 Write-Separator -title "Checking Parameters"
 $Mode = if ($args[0]) { $args[0] } else { "all" }
 $Message = if ($args[1]) { $args[1] } else { "updating repository" }
-$NewBranch = if ($args[2]) { $args[2] } else { "" }
+$NewBranch = if ($args[2]) { $args[2] } else { "none" }
 
 Test-Parameter -key "Mode" -value $Mode
 Test-Parameter -key "Message" -value $Message
@@ -22,7 +22,7 @@ Test-Parameter -key "Message" -value $Message
 Write-Separator -title "Starting Git Push"
 
 try {
-    if ($NewBranch) {
+    if ($NewBranch -ne "none") {
         Write-Host "Creating new branch: $NewBranch"
         git checkout -b $NewBranch
         if ($LASTEXITCODE -ne 0) {
