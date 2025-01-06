@@ -92,8 +92,16 @@ export async function activate(context: vscode.ExtensionContext) {
             picked: scriptsProvider.getSelectedTags().includes(tag)
         }));
 
-        // Combine both with plain text headers
+        const allSources = scriptsProvider.getAllSources().map(source => ({
+            label: source,
+            type: 'source',
+            picked: scriptsProvider.getSelectedSources().includes(source)
+        }));
+
+        // Combine all with headers
         const items = [
+            { label: 'Sources', kind: vscode.QuickPickItemKind.Separator },
+            ...allSources,
             { label: 'Categories', kind: vscode.QuickPickItemKind.Separator },
             ...allCategories,
             { label: 'Tags', kind: vscode.QuickPickItemKind.Separator },
@@ -102,7 +110,7 @@ export async function activate(context: vscode.ExtensionContext) {
 
         const selected = await vscode.window.showQuickPick(items, {
             canPickMany: true,
-            placeHolder: 'Select categories and tags to filter by',
+            placeHolder: 'Select sources, categories and tags to filter by',
             title: 'Filter Scripts'
         });
 
@@ -115,8 +123,13 @@ export async function activate(context: vscode.ExtensionContext) {
                 .filter(item => 'type' in item && item.type === 'tag')
                 .map(item => item.label);
 
+            const selectedSources = selected
+                .filter(item => 'type' in item && item.type === 'source')
+                .map(item => item.label);
+
             scriptsProvider.setSelectedCategories(selectedCategories);
             scriptsProvider.setSelectedTags(selectedTags);
+            scriptsProvider.setSelectedSources(selectedSources);
             updateCommandIcons();
         }
     });
@@ -126,6 +139,7 @@ export async function activate(context: vscode.ExtensionContext) {
         scriptsProvider.setSearchQuery('');
         scriptsProvider.setSelectedTags([]);
         scriptsProvider.setSelectedCategories([]);
+        scriptsProvider.setSelectedSources([]);  // Add this line
         updateCommandIcons();
     });
 
