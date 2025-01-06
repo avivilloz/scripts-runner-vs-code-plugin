@@ -28,4 +28,6 @@ export interface ParameterMetadata {
 export interface Script {
     metadata: ScriptMetadata;
     path: string;
+    sourceName: string;  // Add this field
+    sourcePath: string;  // Add this field
 }

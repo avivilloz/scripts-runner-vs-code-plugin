@@ -21,6 +21,11 @@
             "description": "Commit message",
             "type": "text",
             "default": "updating repository"
+        },
+        {
+            "name": "branch",
+            "description": "New branch name (optional). If provided, creates and pushes to new branch",
+            "type": "text"
         }
     ]
 }

@@ -123,20 +123,37 @@ export class ScriptsSourceService {
         }
     }
 
-    getAllScriptsPaths(): string[] {
+    getAllScriptsPaths(): Array<{ path: string; sourceName: string; sourcePath: string }> {
         const config = vscode.workspace.getConfiguration('scriptsRunner');
         const sources = config.get<ScriptsSourceConfig[]>('sources', []);
 
         return sources
-            .filter(source => source.enabled !== false)  // treat undefined as enabled
+            .filter(source => source.enabled !== false)
             .map(source => {
                 if (source.builtIn) {
-                    return path.join(this.builtInSourcesPath, 'built-in');
+                    const sourcePath = path.join(this.builtInSourcesPath, 'built-in');
+                    return {
+                        path: sourcePath,
+                        sourcePath: sourcePath,
+                        sourceName: source.name || 'Built-in'
+                    };
                 }
+                
                 if (source.type === 'git') {
-                    return path.join(this.getRepoPath(source.url), source.scriptsPath || 'scripts');
+                    const sourcePath = path.join(this.getRepoPath(source.url));
+                    return {
+                        path: path.join(sourcePath, source.scriptsPath || 'scripts'),
+                        sourcePath: sourcePath,
+                        sourceName: source.name || 'Unknown'
+                    };
                 }
-                return source.path;
+                
+                // For local sources, both path and sourcePath are the same
+                return {
+                    path: source.path,
+                    sourcePath: source.path,
+                    sourceName: source.name || 'Unknown'
+                };
             });
     }
 
@@ -161,7 +178,7 @@ export class ScriptsSourceService {
         if (!sources.some(s => s.builtIn)) {
             sources.push({
                 type: 'local',
-                name: 'Built-in Scripts',
+                name: 'Built-in',
                 path: builtInPath,  // Point directly to extension's scripts
                 builtIn: true,
                 enabled: true

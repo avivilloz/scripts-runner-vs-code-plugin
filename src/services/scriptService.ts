@@ -21,16 +21,16 @@ export class ScriptService {
         this.inputFormProvider = new InputFormProvider();
     }
 
-    async findScripts(scriptsPaths: string[]): Promise<Script[]> {
-        console.log('Starting script search in paths:', scriptsPaths);
+    async findScripts(scriptsSources: Array<{ path: string; sourceName: string; sourcePath: string }>): Promise<Script[]> {
+        console.log('Starting script search in sources:', scriptsSources);
         const allScripts: Script[] = [];
 
-        for (const scriptsPath of scriptsPaths) {
-            if (!fs.existsSync(scriptsPath)) {
-                console.error('Scripts path does not exist:', scriptsPath);
+        for (const source of scriptsSources) {
+            if (!fs.existsSync(source.path)) {
+                console.error('Scripts path does not exist:', source.path);
                 continue;
             }
-            const results = await this.findScriptsRecursively(scriptsPath);
+            const results = await this.findScriptsRecursively(source.path, source.sourceName, source.sourcePath);
             allScripts.push(...results);
         }
 
@@ -38,7 +38,7 @@ export class ScriptService {
         return allScripts;
     }
 
-    private async findScriptsRecursively(dir: string): Promise<Script[]> {
+    private async findScriptsRecursively(dir: string, sourceName: string, sourcePath: string): Promise<Script[]> {
         console.log('Searching for scripts in:', dir);
         const scripts: Script[] = [];
         const files = await fs.promises.readdir(dir).catch((err) => {
@@ -57,11 +57,11 @@ export class ScriptService {
                 const metadataPath = path.join(filePath, 'script.json');
                 // Check for script.json in current directory
                 if (await fs.promises.access(metadataPath).then(() => true, () => false)) {
-                    const script = await this.loadScriptFromMetadata(filePath, metadataPath);
+                    const script = await this.loadScriptFromMetadata(filePath, metadataPath, sourceName, sourcePath);
                     if (script) scripts.push(script);
                 }
                 // Recursively check subdirectories
-                const subDirScripts = await this.findScriptsRecursively(filePath);
+                const subDirScripts = await this.findScriptsRecursively(filePath, sourceName, sourcePath);
                 scripts.push(...subDirScripts);
             }
         }
@@ -69,7 +69,7 @@ export class ScriptService {
         return scripts;
     }
 
-    private async loadScriptFromMetadata(scriptDir: string, metadataPath: string): Promise<Script | null> {
+    private async loadScriptFromMetadata(scriptDir: string, metadataPath: string, sourceName: string, sourcePath: string): Promise<Script | null> {
         console.log('Loading metadata from:', metadataPath);
         try {
             const content = await fs.promises.readFile(metadataPath, 'utf-8');
@@ -93,7 +93,9 @@ export class ScriptService {
 
             return {
                 metadata,
-                path: scriptPath
+                path: scriptPath,
+                sourceName,
+                sourcePath
             };
         } catch (error: unknown) {
             console.error(`Error loading script metadata from ${metadataPath}:`, error);
@@ -141,41 +143,8 @@ export class ScriptService {
         return terminal;
     }
 
-    private getRepositoryPath(scriptPath: string): string {
-        // Walk up the directory tree until we find the repository root (where scripts folder is)
-        let currentPath = path.dirname(scriptPath);
-        let lastPath = '';
-
-        while (currentPath !== lastPath) {
-            // Check if we've reached the scripts-repos directory
-            if (path.basename(path.dirname(currentPath)) === 'scripts-repos') {
-                return currentPath;
-            }
-            lastPath = currentPath;
-            currentPath = path.dirname(currentPath);
-        }
-        return currentPath;
-    }
-
-    private getSourcePath(scriptPath: string): string {
-        // Walk up until we find the 'sources' directory
-        let currentPath = path.dirname(scriptPath);
-
-        while (currentPath && path.dirname(currentPath) !== currentPath) {
-            if (path.basename(path.dirname(currentPath)) === 'sources') {
-                return currentPath;
-            }
-            currentPath = path.dirname(currentPath);
-        }
-
-        return currentPath;
-    }
-
     async executeScript(script: Script): Promise<void> {
         console.log('Executing script:', script.metadata.name);
-
-        const sourcePath = this.getSourcePath(script.path);
-        console.log('Source path:', sourcePath);
 
         const terminalSettings: ScriptMetadata['terminal'] = {
             new: false,
@@ -255,8 +224,7 @@ export class ScriptService {
 
             // Prepare environment variables
             const env: Record<string, string> = {
-                SCRIPT_PATH: script.path,
-                SOURCE_PATH: sourcePath,
+                SOURCE_PATH: script.sourcePath,
             };
 
             // Build environment variable export commands
