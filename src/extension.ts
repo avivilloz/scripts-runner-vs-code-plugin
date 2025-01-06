@@ -38,9 +38,6 @@ export async function activate(context: vscode.ExtensionContext) {
             { extension: '.sh', system: 'linux', command: 'bash', builtIn: true },
             { extension: '.sh', system: 'darwin', command: 'bash', builtIn: true },
             { extension: '.ps1', system: 'windows', command: 'powershell -File', builtIn: true },
-            { extension: '.py', system: 'windows', command: 'python', builtIn: true },
-            { extension: '.py', system: 'linux', command: 'python3', builtIn: true },
-            { extension: '.py', system: 'darwin', command: 'python3', builtIn: true }
         ];
 
         await config.update('fileExtensions', builtInCommands, true);
