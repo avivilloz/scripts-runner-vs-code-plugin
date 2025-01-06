@@ -65,11 +65,11 @@ export class ScriptsProvider implements vscode.TreeDataProvider<Script> {
 
         // Combine category and source in the description
         const descriptions: string[] = [];
+        descriptions.push(`[${element.sourceName}]`);
         if (element.metadata.category) {
-            descriptions.push(element.metadata.category);
+            descriptions.push(`${element.metadata.category}`);
         }
-        descriptions.push(element.sourceName);
-        treeItem.description = descriptions.join(' • ');
+        treeItem.description = `•  ${descriptions.join('  •  ')}`;
 
         // Create detailed tooltip with markdown formatting
         const tooltip = new vscode.MarkdownString()
