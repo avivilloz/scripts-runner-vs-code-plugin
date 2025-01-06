@@ -45,10 +45,21 @@ export class FileExtensionConfigProvider {
             switch (message.command) {
                 case 'saveExtension':
                     try {
-                        const existingIndex = extensions.findIndex(
-                            e => e.extension === message.config.extension &&
-                                e.system === message.config.system
-                        );
+                        let existingIndex = -1;
+
+                        if (message.originalValues) {
+                            // Find the original extension configuration
+                            existingIndex = extensions.findIndex(
+                                e => e.extension === message.originalValues.extension &&
+                                    e.system === message.originalValues.system
+                            );
+                        } else {
+                            // For new extensions, check if it already exists
+                            existingIndex = extensions.findIndex(
+                                e => e.extension === message.config.extension &&
+                                    e.system === message.config.system
+                            );
+                        }
 
                         if (existingIndex >= 0) {
                             extensions[existingIndex] = message.config;
@@ -245,7 +256,11 @@ export class FileExtensionConfigProvider {
 
                         vscode.postMessage({ 
                             command: 'saveExtension',
-                            config: newConfig
+                            config: newConfig,
+                            originalValues: isNew ? null : {
+                                extension: config.extension,
+                                system: config.system
+                            }
                         });
 
                         if (isNew) {
@@ -301,6 +316,7 @@ export class FileExtensionConfigProvider {
                     }
                 });
 
+                // Initial render AFTER event listener is set up
                 renderExtensions();
             </script>
         </body>
