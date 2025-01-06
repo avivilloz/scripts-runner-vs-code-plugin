@@ -3,6 +3,7 @@ import { ScriptsSourceService } from './services/scriptsSourceService';  // Upda
 import { ScriptService } from './services/scriptService';
 import { ScriptsProvider } from './providers/scriptsProvider';
 import { SourceConfigProvider } from './services/sourceConfigProvider';
+import { FileExtensionConfigProvider } from './services/fileExtensionConfigProvider';
 
 export async function activate(context: vscode.ExtensionContext) {
     console.log('Scripts Runner extension is being activated');
@@ -18,8 +19,32 @@ export async function activate(context: vscode.ExtensionContext) {
         }
     );
 
+    const fileExtensionConfigProvider = new FileExtensionConfigProvider(
+        context,
+        async () => {
+            await scriptsProvider.refresh();
+        }
+    );
+
     // Initialize built-in sources
     await scriptsSourceService.initializeBuiltInSources();
+
+    // Initialize built-in file extension commands if none exist
+    const config = vscode.workspace.getConfiguration('scriptsRunner');
+    const existingCommands = config.get<any[]>('fileExtensions', []);
+
+    if (existingCommands.length === 0) {
+        const builtInCommands = [
+            { extension: '.sh', system: 'linux', command: 'bash', builtIn: true },
+            { extension: '.sh', system: 'darwin', command: 'bash', builtIn: true },
+            { extension: '.ps1', system: 'windows', command: 'powershell -File', builtIn: true },
+            { extension: '.py', system: 'windows', command: 'python', builtIn: true },
+            { extension: '.py', system: 'linux', command: 'python3', builtIn: true },
+            { extension: '.py', system: 'darwin', command: 'python3', builtIn: true }
+        ];
+
+        await config.update('fileExtensions', builtInCommands, true);
+    }
 
     // Register tree data provider
     console.log('Registering tree data provider');
@@ -147,13 +172,22 @@ export async function activate(context: vscode.ExtensionContext) {
         sourceConfigProvider.show();
     });
 
+    // Add new command for configuring file extensions
+    let configureFileExtensionsCommand = vscode.commands.registerCommand(
+        'scripts-runner.configureFileExtensions',
+        () => {
+            fileExtensionConfigProvider.show();
+        }
+    );
+
     context.subscriptions.push(
         refreshCommand,
         executeCommand,
         searchCommand,
         filterCommand,
         clearFiltersCommand,
-        configureSourceCommand
+        configureSourceCommand,
+        configureFileExtensionsCommand
     );
 
     console.log('Scripts Runner extension activated successfully');

@@ -46,6 +46,11 @@
                 "command": "scripts-runner.configureSource",
                 "title": "Manage Sources",
                 "icon": "$(gear)"
+            },
+            {
+                "command": "scripts-runner.configureFileExtensions",
+                "title": "Manage File Extensions",
+                "icon": "$(file-code)"
             }
         ],
         "viewsContainers": {
@@ -91,6 +96,11 @@
                     "command": "scripts-runner.configureSource",
                     "when": "view == scriptsExplorer",
                     "group": "navigation@0"
+                },
+                {
+                    "command": "scripts-runner.configureFileExtensions",
+                    "when": "view == scriptsExplorer",
+                    "group": "navigation@1"
                 }
             ]
         },
@@ -145,6 +155,45 @@
                     "editPresentation": "multilineJson",
                     "order": 1,
                     "markdownDescription": "Script sources configuration. Click [Manage Sources](command:scripts-runner.configureSource) to open the configuration UI."
+                },
+                "scriptsRunner.fileExtensions": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "required": [
+                            "extension",
+                            "system",
+                            "command"
+                        ],
+                        "properties": {
+                            "extension": {
+                                "type": "string",
+                                "description": "File extension (e.g., .sh, .ps1)"
+                            },
+                            "system": {
+                                "type": "string",
+                                "enum": [
+                                    "windows",
+                                    "linux",
+                                    "darwin"
+                                ],
+                                "description": "Operating system"
+                            },
+                            "command": {
+                                "type": "string",
+                                "description": "Command to execute files with this extension"
+                            },
+                            "builtIn": {
+                                "type": "boolean",
+                                "description": "Indicates if this is a built-in extension mapping",
+                                "default": false
+                            }
+                        }
+                    },
+                    "default": [],
+                    "description": "File extension command mappings",
+                    "editPresentation": "multilineJson",
+                    "order": 2
                 }
             }
         },

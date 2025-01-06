@@ -143,6 +143,22 @@ export class ScriptService {
         return terminal;
     }
 
+    private getScriptCommand(scriptPath: string, params: string[], exitCommand: string): string {
+        const config = vscode.workspace.getConfiguration('scriptsRunner');
+        const extensions = config.get<Array<{ extension: string; system: string; command: string }>>('fileExtensions', []);
+
+        const fileExt = path.extname(scriptPath);
+        const extensionConfig = extensions.find(
+            e => e.extension === fileExt && e.system === this.platform
+        );
+
+        if (!extensionConfig) {
+            throw new Error(`No command configured for ${fileExt} files on ${this.platform}`);
+        }
+
+        return `${extensionConfig.command} "${scriptPath}" ${params.join(' ')}${exitCommand}`;
+    }
+
     async executeScript(script: Script): Promise<void> {
         console.log('Executing script:', script.metadata.name);
 
@@ -209,18 +225,7 @@ export class ScriptService {
             const exitCommand = exitCommands.length > 0 ?
                 '; ' + exitCommands.join('; ') : '';
 
-            let scriptCommand = '';
-            switch (path.extname(script.path)) {
-                case '.sh':
-                    scriptCommand = `bash "${script.path}" ${params.join(' ')}${exitCommand}`;
-                    break;
-                case '.ps1':
-                    scriptCommand = `powershell -File "${script.path}" ${params.join(' ')}${exitCommand}`;
-                    break;
-                case '.py':
-                    scriptCommand = `python "${script.path}" ${params.join(' ')}${exitCommand}`;
-                    break;
-            }
+            const scriptCommand = this.getScriptCommand(script.path, params, exitCommand);
 
             // Prepare environment variables
             const env: Record<string, string> = {
