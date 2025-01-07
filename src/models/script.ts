@@ -1,14 +1,16 @@
+export interface PlatformScripts {
+    [platform: string]: string[] | string; // Can be array of filenames or single inline script
+}
+
 export interface ScriptMetadata {
     name: string;
     description: string;
     category?: string;
-    platforms: {
-        [key in 'windows' | 'linux' | 'darwin']?: string[];
-    };
-    parameters?: ParameterMetadata[];
     tags?: string[];
+    platforms: PlatformScripts;
+    parameters?: ParameterMetadata[];
     terminal?: {
-        new?: boolean;  // If true, creates new terminal. Defaults to false
+        new?: boolean;
         onExit?: {
             refresh?: boolean;
             clear?: boolean;
@@ -28,6 +30,7 @@ export interface ParameterMetadata {
 export interface Script {
     metadata: ScriptMetadata;
     path: string;
-    sourceName: string;  // Add this field
-    sourcePath: string;  // Add this field
+    sourceName: string;
+    sourcePath: string;
+    inlineScript?: string;
 }

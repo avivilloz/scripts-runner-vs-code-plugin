@@ -69,22 +69,66 @@ export class ScriptService {
         return scripts;
     }
 
+    private getScriptCommand(scriptPath: string | null, params: string[], exitCommand: string, script?: Script, inlineScript?: string): string {
+        if (inlineScript) {
+            // Replace parameter placeholders with actual values
+            let command = inlineScript;
+            params.forEach((value, index) => {
+                const param = script?.metadata.parameters?.[index];
+                if (param) {
+                    // Use simpler {paramName} syntax
+                    command = command.replace(new RegExp(`{${param.name}}`, 'g'), value);
+                }
+            });
+            return `${command}${exitCommand}`;
+        }
+
+        // Handle regular file-based scripts
+        if (!scriptPath) {
+            throw new Error('No script path provided for file-based script');
+        }
+
+        const config = vscode.workspace.getConfiguration('scriptsRunner');
+        const extensions = config.get<Array<{ extension: string; system: string; command: string }>>('fileExtensions', []);
+
+        const fileExt = path.extname(scriptPath);
+        const extensionConfig = extensions.find(
+            e => e.extension === fileExt && e.system === this.platform
+        );
+
+        if (!extensionConfig) {
+            throw new Error(`No command configured for ${fileExt} files on ${this.platform}`);
+        }
+
+        return `${extensionConfig.command} "${scriptPath}" ${params.join(' ')}${exitCommand}`;
+    }
+
     private async loadScriptFromMetadata(scriptDir: string, metadataPath: string, sourceName: string, sourcePath: string): Promise<Script | null> {
         console.log('Loading metadata from:', metadataPath);
         try {
             const content = await fs.promises.readFile(metadataPath, 'utf-8');
             const metadata: ScriptMetadata = JSON.parse(content);
 
-            if (!metadata.platforms[this.platform]) {
+            const platformScript = metadata.platforms[this.platform];
+            if (!platformScript) {
                 console.log(`Script not supported on platform ${this.platform}`);
                 return null;
             }
 
-            const platformScripts = metadata.platforms[this.platform];
-            if (!platformScripts || platformScripts.length === 0) return null;
+            // Handle both inline and file-based scripts
+            let scriptPath: string | undefined = undefined;
+            let inlineScript: string | undefined = undefined;
 
-            const scriptPath = path.join(scriptDir, platformScripts[0]);
-            if (!await fs.promises.access(scriptPath).then(() => true, () => false)) return null;
+            if (typeof platformScript === 'string') {
+                inlineScript = platformScript;
+            } else if (Array.isArray(platformScript) && platformScript.length > 0) {
+                scriptPath = path.join(scriptDir, platformScript[0]);
+                if (!await fs.promises.access(scriptPath).then(() => true, () => false)) {
+                    return null;
+                }
+            } else {
+                return null;
+            }
 
             if (!metadata.name || !metadata.description) {
                 console.error(`Invalid metadata in ${metadataPath}: missing name or description`);
@@ -93,9 +137,10 @@ export class ScriptService {
 
             return {
                 metadata,
-                path: scriptPath,
+                path: scriptPath || metadataPath, // Use metadata path for inline scripts
                 sourceName,
-                sourcePath
+                sourcePath,
+                inlineScript // Add this new property
             };
         } catch (error: unknown) {
             console.error(`Error loading script metadata from ${metadataPath}:`, error);
@@ -143,22 +188,6 @@ export class ScriptService {
         return terminal;
     }
 
-    private getScriptCommand(scriptPath: string, params: string[], exitCommand: string): string {
-        const config = vscode.workspace.getConfiguration('scriptsRunner');
-        const extensions = config.get<Array<{ extension: string; system: string; command: string }>>('fileExtensions', []);
-
-        const fileExt = path.extname(scriptPath);
-        const extensionConfig = extensions.find(
-            e => e.extension === fileExt && e.system === this.platform
-        );
-
-        if (!extensionConfig) {
-            throw new Error(`No command configured for ${fileExt} files on ${this.platform}`);
-        }
-
-        return `${extensionConfig.command} "${scriptPath}" ${params.join(' ')}${exitCommand}`;
-    }
-
     async executeScript(script: Script): Promise<void> {
         console.log('Executing script:', script.metadata.name);
 
@@ -187,19 +216,15 @@ export class ScriptService {
                 );
 
                 if (!paramValues) {
-                    if (terminalSettings.new) {  // Changed from !terminalSettings.useCurrent
+                    if (terminalSettings.new) {
                         terminal.dispose();
                     }
                     return;
                 }
 
                 for (const param of script.metadata.parameters) {
-                    // Get value or default - no need to check if required
                     const value = paramValues.get(param.name);
-
-                    // Always add value since form validation ensures all parameters have values
                     if (value || param.default !== undefined) {
-                        // Convert default value to string if it's boolean
                         const defaultValue = typeof param.default === 'boolean'
                             ? param.default.toString()
                             : param.default;
@@ -208,14 +233,9 @@ export class ScriptService {
                 }
             }
 
-            // Build command based on script type
-
-            // On Windows, we need a different approach for closing PowerShell
-            // const isPowershell = path.extname(script.path) === '.ps1';
             const isWindows = this.platform === 'windows';
             let exitCommands = [];
 
-            // Build exit commands based on settings
             if (terminalSettings.onExit?.refresh) {
                 exitCommands.push(isWindows ? 'powershell' : 'bash');
             }
@@ -226,18 +246,22 @@ export class ScriptService {
                 exitCommands.push(isWindows ? 'exit' : 'exit');
             }
 
-            // Use semicolon as command separator for both platforms
             const exitCommand = exitCommands.length > 0 ?
                 '; ' + exitCommands.join('; ') : '';
 
-            const scriptCommand = this.getScriptCommand(script.path, params, exitCommand);
+            const scriptCommand = this.getScriptCommand(
+                script.path, 
+                params, 
+                exitCommand,
+                script,
+                script.inlineScript
+            );
 
             // Prepare environment variables
             const env: Record<string, string> = {
                 SOURCE_PATH: script.sourcePath,
             };
 
-            // Build environment variable export commands
             let envSetup = '';
             if (isWindows) {
                 envSetup = Object.entries(env)
@@ -249,7 +273,6 @@ export class ScriptService {
                     .join(' ');
             }
 
-            // Build final command with environment setup
             const command = `${envSetup} ${scriptCommand}`;
 
             terminal.show();
@@ -257,15 +280,19 @@ export class ScriptService {
 
             if (terminalSettings.onExit?.close) {
                 await new Promise(resolve => setTimeout(resolve, 500));
-                if (terminalSettings.new) {  // Changed from !terminalSettings.useCurrent
+                if (terminalSettings.new) {
                     terminal.dispose();
                     this.activeTerminal = null;
                 }
             }
         } catch (error: unknown) {
-            if (terminalSettings.new) {  // Changed from !terminalSettings.useCurrent
+            if (terminalSettings.new) {
                 terminal.dispose();
                 this.activeTerminal = null;
+            }
+            // Properly show error to user
+            if (error instanceof Error) {
+                vscode.window.showErrorMessage(`Failed to execute script: ${error.message}`);
             }
             throw error;
         }
