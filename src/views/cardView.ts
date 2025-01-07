@@ -71,9 +71,9 @@ export class CardView {
                         margin-bottom: 12px;
                         color: var(--vscode-textLink-foreground);
                     }
-                    .card-title:hover {
-                        text-decoration: underline;
-                    }
+                    // .card-title:hover {
+                    //     text-decoration: underline;
+                    // }
                     .card-meta {
                         font-size: 12px;
                         color: var(--vscode-descriptionForeground);
@@ -149,8 +149,8 @@ export class CardView {
                 <div id="tooltip" class="tooltip"></div>
                 <script>
                     const vscode = acquireVsCodeApi();
-                    const tooltip = document.getElementById('tooltip');
-                    let tooltipTimeout;
+                    // const tooltip = document.getElementById('tooltip');
+                    // let tooltipTimeout;
 
                     function executeScript(path) {
                         vscode.postMessage({
@@ -159,22 +159,22 @@ export class CardView {
                         });
                     }
 
-                    document.querySelectorAll('.card').forEach(card => {
-                        card.addEventListener('mouseover', (e) => {
-                            clearTimeout(tooltipTimeout);
-                            tooltipTimeout = setTimeout(() => {
-                                tooltip.innerHTML = card.dataset.tooltip;
-                                tooltip.style.display = 'block';
-                                tooltip.style.left = e.pageX + 10 + 'px';
-                                tooltip.style.top = e.pageY + 10 + 'px';
-                            }, 500);
-                        });
+                    // document.querySelectorAll('.card').forEach(card => {
+                    //     card.addEventListener('mouseover', (e) => {
+                    //         clearTimeout(tooltipTimeout);
+                    //         tooltipTimeout = setTimeout(() => {
+                    //             tooltip.innerHTML = card.dataset.tooltip;
+                    //             tooltip.style.display = 'block';
+                    //             tooltip.style.left = e.pageX + 10 + 'px';
+                    //             tooltip.style.top = e.pageY + 10 + 'px';
+                    //         }, 500);
+                    //     });
 
-                        card.addEventListener('mouseout', () => {
-                            clearTimeout(tooltipTimeout);
-                            tooltip.style.display = 'none';
-                        });
-                    });
+                    //     card.addEventListener('mouseout', () => {
+                    //         clearTimeout(tooltipTimeout);
+                    //         tooltip.style.display = 'none';
+                    //     });
+                    // });
                 </script>
             </body>
             </html>
