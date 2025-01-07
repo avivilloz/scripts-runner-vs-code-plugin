@@ -12,13 +12,13 @@ export class ScriptService {
     private inputFormProvider: InputFormProvider;
     private activeTerminal: vscode.Terminal | null = null;
 
-    constructor() {
+    constructor(context: vscode.ExtensionContext) {
         const currentPlatform = os.platform();
         // Map platform to supported types or default to 'linux'
         this.platform = (currentPlatform === 'win32' ? 'windows' :
             currentPlatform === 'darwin' ? 'darwin' :
                 currentPlatform === 'linux' ? 'linux' : 'linux') as SupportedPlatform;
-        this.inputFormProvider = new InputFormProvider();
+        this.inputFormProvider = new InputFormProvider(context);
     }
 
     async findScripts(scriptsSources: Array<{ path: string; sourceName: string; sourcePath: string }>): Promise<Script[]> {
@@ -182,7 +182,8 @@ export class ScriptService {
                 const paramValues = await this.inputFormProvider.showParameterInputForm(
                     script.metadata.parameters,
                     script.metadata.name,
-                    script.metadata.description
+                    script.metadata.description,
+                    script.path
                 );
 
                 if (!paramValues) {

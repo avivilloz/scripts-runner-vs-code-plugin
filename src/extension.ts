@@ -14,7 +14,7 @@ export async function activate(context: vscode.ExtensionContext) {
     await vscode.commands.executeCommand('setContext', 'scriptsRunner:viewType', 'list');
 
     const scriptsSourceService = new ScriptsSourceService(context);  // Updated variable name
-    const scriptService = new ScriptService();
+    const scriptService = new ScriptService(context);
     const scriptsProvider = new ScriptsProvider(scriptsSourceService, scriptService, context);  // Updated parameter
     const sourceConfigProvider = new SourceConfigProvider(
         context,

@@ -2,7 +2,16 @@ import * as vscode from 'vscode';
 import { ParameterMetadata } from '../models/script';
 
 export class InputFormProvider {
-    async showParameterInputForm(parameters: ParameterMetadata[], scriptName: string, scriptDescription: string): Promise<Map<string, string> | undefined> {
+    constructor(
+        private context: vscode.ExtensionContext
+    ) {}
+
+    async showParameterInputForm(
+        parameters: ParameterMetadata[], 
+        scriptName: string, 
+        scriptDescription: string,
+        scriptPath: string
+    ): Promise<Map<string, string> | undefined> {
         if (!parameters || parameters.length === 0) {
             return new Map();
         }
@@ -18,10 +27,31 @@ export class InputFormProvider {
             <div class="script-info">
                 <h2>${scriptName}</h2>
                 <p class="description">${scriptDescription}</p>
+                <div class="script-path">
+                    <i class="codicon codicon-file"></i>
+                    <a href="#" onclick="openScript('${scriptPath.replace(/\\/g, '\\\\')}'); return false;">
+                        ${scriptPath}
+                    </a>
+                </div>
             </div>
         `;
 
         const scriptInfoStyles = `
+            @font-face {
+                font-family: "codicon";
+                src: url("${panel.webview.asWebviewUri(vscode.Uri.joinPath(this.context.extensionUri, 'node_modules', '@vscode/codicons', 'dist', 'codicon.ttf'))}") format("truetype");
+            }
+            .codicon {
+                font: normal normal normal 16px/1 codicon;
+                display: inline-block;
+                text-decoration: none;
+                text-rendering: auto;
+                text-align: center;
+                -webkit-font-smoothing: antialiased;
+                -moz-osx-font-smoothing: grayscale;
+                user-select: none;
+            }
+            .codicon-file:before { content: "\\eb60"; }
             .script-info {
                 margin-bottom: 24px;
                 padding-bottom: 16px;
@@ -32,18 +62,51 @@ export class InputFormProvider {
                 color: var(--vscode-foreground);
             }
             .description {
-                margin: 0;
+                margin: 0 0 12px 0;
                 color: var(--vscode-descriptionForeground);
+            }
+            .script-path {
+                display: flex;
+                align-items: center;
+                gap: 4px;
+                font-size: 12px;
+            }
+            .script-path a {
+                color: var(--vscode-textLink-foreground);
+                text-decoration: none;
+            }
+            .script-path a:hover {
+                text-decoration: underline;
+            }
+            .script-path i {
+                color: var(--vscode-descriptionForeground);
+            }
+            .path-icon {
+                font-family: codicon;
+                font-size: 14px;
+            }
+        `;
+
+        const scriptOpeningScript = `
+            function openScript(path) {
+                vscode.postMessage({
+                    command: 'openScript',
+                    path: path
+                });
             }
         `;
 
         const paramValues = new Map<string, string>();
 
         return new Promise((resolve) => {
-            panel.webview.html = this.getWebviewContent(parameters, scriptInfoHtml, scriptInfoStyles);
+            panel.webview.html = this.getWebviewContent(parameters, scriptInfoHtml, scriptInfoStyles, scriptOpeningScript);
 
             panel.webview.onDidReceiveMessage(
                 message => {
+                    if (message.command === 'openScript') {
+                        const uri = vscode.Uri.file(message.path);
+                        vscode.window.showTextDocument(uri);
+                    }
                     switch (message.command) {
                         case 'submit':
                             const values = message.values;
@@ -72,7 +135,12 @@ export class InputFormProvider {
         });
     }
 
-    private getWebviewContent(parameters: ParameterMetadata[], scriptInfoHtml: string, scriptInfoStyles: string): string {
+    private getWebviewContent(
+        parameters: ParameterMetadata[], 
+        scriptInfoHtml: string, 
+        scriptInfoStyles: string,
+        scriptOpeningScript: string
+    ): string {
         const inputs = parameters.map(param => {
             const inputHtml = this.getInputHtml(param);
             return `
@@ -196,6 +264,7 @@ export class InputFormProvider {
                 </form>
                 <script>
                     const vscode = acquireVsCodeApi();
+                    ${scriptOpeningScript}
                     const form = document.getElementById('paramForm');
                     const submitBtn = document.getElementById('submitBtn');
 
