@@ -53,8 +53,9 @@ export class CardView {
                         gap: 20px;
                     }
                     .card {
+                        position: relative;
                         background: var(--vscode-editor-background);
-                        border: 1px solid var(--vscode-input-border);
+                        border: 1px solid var(--vscode-focusBorder);
                         border-radius: 6px;
                         padding: 16px;
                         cursor: pointer;
@@ -73,6 +74,7 @@ export class CardView {
                         font-size: 12px;
                         color: var(--vscode-descriptionForeground);
                         margin-bottom: 12px;
+                        margin-right: 100px;
                     }
                     .card-description {
                         font-size: 13px;
@@ -84,8 +86,9 @@ export class CardView {
                         gap: 6px;
                     }
                     .tag {
-                        background: var(--vscode-badge-background);
-                        color: var(--vscode-badge-foreground);
+                        border: 1px solid var(--vscode-focusBorder);
+                        background: transparent;
+                        color: var(--vscode-foreground);
                         padding: 2px 6px;
                         border-radius: 4px;
                         font-size: 11px;
@@ -100,6 +103,17 @@ export class CardView {
                         max-width: 300px;
                         display: none;
                     }
+                    .card-category {
+                        position: absolute;
+                        top: 12px;
+                        right: 12px;
+                        font-size: 12px;
+                        color: black !important;
+                        font-weight: 500;
+                        background: var(--vscode-badge-background);
+                        padding: 2px 8px;
+                        border-radius: 4px;
+                    }
                 </style>
             </head>
             <body>
@@ -108,9 +122,12 @@ export class CardView {
                         <div class="card" 
                              onclick="executeScript('${script.path}')"
                              data-tooltip="${this.getTooltipContent(script)}">
+                            ${script.metadata.category ? 
+                                `<div class="card-category">${script.metadata.category}</div>` : 
+                                ''}
                             <div class="card-title">${script.metadata.name}</div>
                             <div class="card-meta">
-                                ${script.metadata.category || 'Uncategorized'} • ${script.sourceName}
+                                ${script.sourceName}
                             </div>
                             <div class="card-description">
                                 ${script.metadata.description}
