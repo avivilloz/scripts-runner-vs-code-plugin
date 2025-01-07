@@ -206,7 +206,10 @@
                 },
                 "scriptsRunner.viewType": {
                     "type": "string",
-                    "enum": ["list", "card"],
+                    "enum": [
+                        "list",
+                        "card"
+                    ],
                     "default": "list",
                     "description": "Layout type for scripts view"
                 }
@@ -229,6 +232,7 @@
         "package": "vsce package"
     },
     "dependencies": {
+        "@vscode/codicons": "^0.0.36",
         "simple-git": "^3.21.0"
     },
     "bundledDependencies": [
@@ -239,14 +243,14 @@
         "ms"
     ],
     "devDependencies": {
+        "@types/glob": "^8.0.0",
+        "@types/mocha": "^10.0.0",
         "@types/node": "^16.0.0",
         "@types/vscode": "^1.85.0",
-        "typescript": "^5.0.0",
-        "@types/mocha": "^10.0.0",
-        "@types/glob": "^8.0.0",
-        "mocha": "^10.2.0",
-        "glob": "^8.0.0",
         "@vscode/test-electron": "^2.3.8",
-        "@vscode/vsce": "^2.24.0"
+        "@vscode/vsce": "^2.24.0",
+        "glob": "^8.0.0",
+        "mocha": "^10.2.0",
+        "typescript": "^5.0.0"
     }
 }

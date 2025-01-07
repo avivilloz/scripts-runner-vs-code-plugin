@@ -33,15 +33,43 @@ export class CardView {
     private updateContent(scripts: Script[]) {
         if (!this.webviewView) return;
 
+        // Update webview options to allow access to extension resources
         this.webviewView.webview.options = {
-            enableScripts: true
+            enableScripts: true,
+            localResourceRoots: [
+                vscode.Uri.joinPath(this.context.extensionUri, 'node_modules', '@vscode/codicons')
+            ]
         };
+
+        // Add specific codicon classes for the icons we're using
+        const codiconCss = `
+            .codicon-source-control:before { content: "\\ea68"; }
+            .codicon-symbol-parameter:before { content: "\\ea92"; }
+        `;
 
         this.webviewView.webview.html = `
             <!DOCTYPE html>
             <html>
             <head>
+                <meta charset="UTF-8">
                 <style>
+                    @font-face {
+                        font-family: "codicon";
+                        src: url("${this.webviewView.webview.asWebviewUri(vscode.Uri.joinPath(this.context.extensionUri, 'node_modules', '@vscode/codicons', 'dist', 'codicon.ttf'))}") format("truetype");
+                    }
+                    .codicon {
+                        font: normal normal normal 16px/1 codicon;
+                        display: inline-block;
+                        text-decoration: none;
+                        text-rendering: auto;
+                        text-align: center;
+                        -webkit-font-smoothing: antialiased;
+                        -moz-osx-font-smoothing: grayscale;
+                        user-select: none;
+                        -webkit-user-select: none;
+                        -ms-user-select: none;
+                    }
+                    ${codiconCss}
                     body {
                         padding: 20px;
                         font-family: var(--vscode-font-family);
@@ -49,7 +77,7 @@ export class CardView {
                     }
                     .grid {
                         display: grid;
-                        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+                        grid-template-columns: repeat(auto-fill, minmax(270px, 1fr));
                         gap: 20px;
                     }
                     .card {
@@ -79,6 +107,24 @@ export class CardView {
                         color: var(--vscode-descriptionForeground);
                         margin-bottom: 12px;
                         margin-right: 100px;
+                        display: flex;
+                        align-items: center;
+                        gap: 4px;
+                    }
+                    .meta-icon {
+                        display: inline-flex;
+                        align-items: center;
+                        opacity: 0.8;
+                    }
+                    .param-indicator {
+                        position: absolute;
+                        bottom: 12px;
+                        right: 12px;
+                        display: flex;
+                        align-items: center;
+                        gap: 4px;
+                        font-size: 12px;
+                        color: var(--vscode-descriptionForeground);
                     }
                     .card-description {
                         font-size: 13px;
@@ -131,6 +177,7 @@ export class CardView {
                                 ''}
                             <div class="card-title">${script.metadata.name}</div>
                             <div class="card-meta">
+                                <i class="codicon codicon-source-control"></i>
                                 ${script.sourceName}
                             </div>
                             <div class="card-description">
@@ -141,6 +188,11 @@ export class CardView {
                                     ${script.metadata.tags.map(tag => `
                                         <span class="tag">${tag}</span>
                                     `).join('')}
+                                </div>
+                            ` : ''}
+                            ${script.metadata.parameters?.length ? `
+                                <div class="param-indicator">
+                                    <i class="codicon codicon-symbol-parameter"></i>
                                 </div>
                             ` : ''}
                         </div>
