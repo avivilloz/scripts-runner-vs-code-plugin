@@ -53,13 +53,13 @@
                 "icon": "$(layout)"
             },
             {
-                "command": "scripts-runner.toggleFavorite",
-                "title": "Toggle Favorite"
+                "command": "scripts-runner.togglePin",
+                "title": "Toggle Pin"
             },
             {
-                "command": "scripts-runner.toggleFavoritesView",
-                "title": "Show Favorites",
-                "icon": "$(star)"
+                "command": "scripts-runner.togglePinnedView",
+                "title": "Show Pinned",
+                "icon": "$(pinned)"
             }
         ],
         "viewsContainers": {
@@ -90,9 +90,24 @@
         "menus": {
             "view/title": [
                 {
-                    "command": "scripts-runner.settings",
+                    "command": "scripts-runner.clearFilters",
+                    "when": "view =~ /scriptsExplorer(List|Card)/ && scriptsRunner.hasFilters",
+                    "group": "navigation@1"
+                },
+                {
+                    "command": "scripts-runner.filter",
                     "when": "view =~ /scriptsExplorer(List|Card)/",
-                    "group": "navigation@7"
+                    "group": "navigation@2"
+                },
+                {
+                    "command": "scripts-runner.search",
+                    "when": "view =~ /scriptsExplorer(List|Card)/",
+                    "group": "navigation@3"
+                },
+                {
+                    "command": "scripts-runner.togglePinnedView",
+                    "when": "view =~ /scriptsExplorer(List|Card)/",
+                    "group": "navigation@4"
                 },
                 {
                     "command": "scripts-runner.refresh",
@@ -100,29 +115,14 @@
                     "group": "navigation@5"
                 },
                 {
-                    "command": "scripts-runner.toggleFavoritesView",
+                    "command": "scripts-runner.settings",
                     "when": "view =~ /scriptsExplorer(List|Card)/",
-                    "group": "navigation@4"
-                },
-                {
-                    "command": "scripts-runner.search",
-                    "when": "view =~ /scriptsExplorer(List|Card)/",
-                    "group": "navigation@2"
-                },
-                {
-                    "command": "scripts-runner.filter",
-                    "when": "view =~ /scriptsExplorer(List|Card)/",
-                    "group": "navigation@3"
-                },
-                {
-                    "command": "scripts-runner.clearFilters",
-                    "when": "view =~ /scriptsExplorer(List|Card)/ && scriptsRunner.hasFilters",
-                    "group": "navigation@1"
+                    "group": "navigation@6"
                 },
                 {
                     "command": "scripts-runner.switchLayout",
                     "when": "view =~ /scriptsExplorer(List|Card)/",
-                    "group": "navigation@6"
+                    "group": "navigation@7"
                 }
             ]
         },

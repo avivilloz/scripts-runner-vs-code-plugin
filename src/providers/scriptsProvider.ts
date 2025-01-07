@@ -13,8 +13,8 @@ export class ScriptsProvider implements vscode.TreeDataProvider<Script>, vscode.
     private selectedTags: string[] = [];
     private selectedCategories: string[] = [];
     private selectedSources: string[] = [];
-    private showFavoritesOnly: boolean = false;
-    private favorites: Set<string>;
+    private showPinnedOnly: boolean = false;
+    private pinnedScripts: Set<string>;
     private scripts: Script[] = [];
     private cardView: CardView;
     private webviewView?: vscode.WebviewView;
@@ -27,8 +27,8 @@ export class ScriptsProvider implements vscode.TreeDataProvider<Script>, vscode.
         this.cardView = new CardView(context, script => {
             vscode.commands.executeCommand('scripts-runner.execute', script);
         }, this);
-        // Initialize favorites from storage
-        this.favorites = new Set(context.globalState.get<string[]>('favoriteScripts', []));
+        // Initialize pinned scripts from storage
+        this.pinnedScripts = new Set(context.globalState.get<string[]>('pinnedScripts', []));
         this.loadScripts();
     }
 
@@ -119,7 +119,7 @@ export class ScriptsProvider implements vscode.TreeDataProvider<Script>, vscode.
 
         // Combine category and source in the description
         const descriptions: string[] = [];
-        descriptions.push(`[${element.sourceName}]`);
+        // descriptions.push(`[${element.sourceName}]`);
         if (element.metadata.category) {
             descriptions.push(`${element.metadata.category}`);
         }
@@ -186,41 +186,41 @@ export class ScriptsProvider implements vscode.TreeDataProvider<Script>, vscode.
     }
 
     // Add methods to handle favorites
-    public toggleFavorite(script: Script): void {
+    public togglePin(script: Script): void {
         const scriptId = this.getScriptId(script);
-        if (this.favorites.has(scriptId)) {
-            this.favorites.delete(scriptId);
+        if (this.pinnedScripts.has(scriptId)) {
+            this.pinnedScripts.delete(scriptId);
         } else {
-            this.favorites.add(scriptId);
+            this.pinnedScripts.add(scriptId);
         }
         // Save to storage
-        this.context.globalState.update('favoriteScripts', Array.from(this.favorites));
+        this.context.globalState.update('pinnedScripts', Array.from(this.pinnedScripts));
         this.refresh();
     }
 
-    public isFavorite(script: Script): boolean {
-        return this.favorites.has(this.getScriptId(script));
+    public isPinned(script: Script): boolean {
+        return this.pinnedScripts.has(this.getScriptId(script));
     }
 
     private getScriptId(script: Script): string {
         return `${script.sourceName}:${script.path}`;
     }
 
-    public setShowFavoritesOnly(show: boolean): void {
-        this.showFavoritesOnly = show;
+    public setShowPinnedOnly(show: boolean): void {
+        this.showPinnedOnly = show;
         this.refresh();
     }
 
-    public isShowingFavoritesOnly(): boolean {
-        return this.showFavoritesOnly;
+    public isShowingPinnedOnly(): boolean {
+        return this.showPinnedOnly;
     }
 
     private getFilteredScripts(): Script[] {
         let filteredScripts = this.scripts;
 
-        if (this.showFavoritesOnly) {
+        if (this.showPinnedOnly) {
             filteredScripts = filteredScripts.filter(script => 
-                this.favorites.has(this.getScriptId(script))
+                this.pinnedScripts.has(this.getScriptId(script))
             );
         }
 

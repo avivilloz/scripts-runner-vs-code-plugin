@@ -140,6 +140,18 @@ export class FileExtensionConfigProvider {
                     color: var(--vscode-input-foreground);
                     border: 1px solid var(--vscode-input-border);
                 }
+                .extension-field {
+                    width: 80px;
+                    flex-shrink: 0;
+                }
+                .system-field {
+                    width: 100px;
+                    flex-shrink: 0;
+                }
+                .command-field {
+                    flex: 1;
+                    min-width: 200px;
+                }
                 .extension-item input:disabled, .extension-item select:disabled {
                     opacity: 0.7;
                     background: var(--vscode-input-background);
@@ -150,6 +162,8 @@ export class FileExtensionConfigProvider {
                     color: var(--vscode-button-foreground);
                     border: none;
                     cursor: pointer;
+                    white-space: nowrap;
+                    flex-shrink: 0;
                 }
                 button:hover {
                     background: var(--vscode-button-hoverBackground);
@@ -167,6 +181,7 @@ export class FileExtensionConfigProvider {
                     color: var(--vscode-badge-foreground);
                     padding: 2px 6px;
                     border-radius: 3px;
+                    margin-left: 8px;
                 }
                 .section-title {
                     font-size: 1.2em;
@@ -191,11 +206,12 @@ export class FileExtensionConfigProvider {
                     
                     const extensionInput = document.createElement('input');
                     extensionInput.placeholder = '.ext';
-                    extensionInput.style.width = '80px';
+                    extensionInput.className = 'extension-field';
                     extensionInput.value = config?.extension || '';
                     extensionInput.disabled = !isNew && !config?.editing;
                     
                     const systemSelect = document.createElement('select');
+                    systemSelect.className = 'system-field';
                     systemSelect.innerHTML = \`
                         <option value="windows">Windows</option>
                         <option value="linux">Linux</option>
@@ -206,7 +222,7 @@ export class FileExtensionConfigProvider {
                     
                     const commandInput = document.createElement('input');
                     commandInput.placeholder = 'Command';
-                    commandInput.style.width = '400px';  // Changed from 200px to 300px
+                    commandInput.className = 'command-field';
                     commandInput.value = config?.command || '';
                     commandInput.disabled = !isNew && !config?.editing;
 

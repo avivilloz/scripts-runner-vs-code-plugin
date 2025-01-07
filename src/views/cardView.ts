@@ -26,10 +26,10 @@ export class CardView {
                         this.onScriptSelected(script);
                     }
                     break;
-                case 'toggleFavorite':
+                case 'togglePin':
                     const scriptToToggle = scripts.find(s => s.path === message.scriptPath);
                     if (scriptToToggle) {
-                        this.scriptsProvider.toggleFavorite(scriptToToggle);
+                        this.scriptsProvider.togglePin(scriptToToggle);
                     }
                     break;
             }
@@ -54,13 +54,13 @@ export class CardView {
         const codiconCss = `
             .codicon-source-control:before { content: "\\ea68"; }
             .codicon-symbol-parameter:before { content: "\\ea92"; }
-            .codicon-star-empty:before { content: "\\ea6a"; }
-            .codicon-star-full:before { content: "\\eb59"; }
+            .codicon-pinned-empty:before { content: "\\eb2b"; }
+            .codicon-pinned-full:before { content: "\\eba0"; }
         `;
 
         // Add favorite button styles
         const styles = `
-            .favorite-btn {
+            .pin-btn {
                 position: absolute;
                 bottom: 12px;
                 right: 12px;
@@ -72,13 +72,13 @@ export class CardView {
                 opacity: 0.6;
                 z-index: 10;
             }
-            .favorite-btn .codicon {
+            .pin-btn .codicon {
                 font-size: 24px !important;
             }
-            .favorite-btn:hover {
+            .pin-btn:hover {
                 opacity: 1;
             }
-            .favorite-btn.active {
+            .pin-btn.active {
                 color: var(--vscode-textLink-activeForeground);
                 opacity: 1;
             }
@@ -240,9 +240,9 @@ export class CardView {
                                     `).join('')}
                                 </div>
                             ` : ''}
-                            <button class="favorite-btn ${this.scriptsProvider.isFavorite(script) ? 'active' : ''}" 
-                                    onclick="event.preventDefault(); event.stopPropagation(); toggleFavorite('${script.path}', event)">
-                                <i class="codicon ${this.scriptsProvider.isFavorite(script) ? 'codicon-star-full' : 'codicon-star-empty'}"></i>
+                            <button class="pin-btn ${this.scriptsProvider.isPinned(script) ? 'active' : ''}" 
+                                    onclick="event.preventDefault(); event.stopPropagation(); togglePin('${script.path}', event)">
+                                <i class="codicon ${this.scriptsProvider.isPinned(script) ? 'codicon-pinned-full' : 'codicon-pinned-empty'}"></i>
                             </button>
                         </div>
                     `).join('')}
@@ -260,10 +260,10 @@ export class CardView {
                         });
                     }
 
-                    function toggleFavorite(scriptPath, event) {
+                    function togglePin(scriptPath, event) {
                         event.stopPropagation();
                         vscode.postMessage({
-                            command: 'toggleFavorite',
+                            command: 'togglePin',
                             scriptPath: scriptPath
                         });
                     }
