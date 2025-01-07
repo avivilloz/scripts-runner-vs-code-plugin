@@ -206,8 +206,11 @@ export async function activate(context: vscode.ExtensionContext) {
         const currentView = config.get<string>('viewType', 'list');
         const newView = currentView === 'list' ? 'card' : 'list';
         
-        await config.update('viewType', newView, true);
+        // Set context first
         await vscode.commands.executeCommand('setContext', 'scriptsRunner:viewType', newView);
+        // Then update configuration
+        await config.update('viewType', newView, true);
+        // Finally refresh the view
         await scriptsProvider.refresh();
     });
 
