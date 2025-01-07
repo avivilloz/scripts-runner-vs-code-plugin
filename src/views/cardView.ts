@@ -66,9 +66,13 @@ export class CardView {
                         border-color: var(--vscode-focusBorder);
                     }
                     .card-title {
-                        font-size: 16px;
-                        font-weight: 500;
-                        margin-bottom: 8px;
+                        font-size: 18px;
+                        font-weight: 600;
+                        margin-bottom: 12px;
+                        color: var(--vscode-textLink-foreground);
+                    }
+                    .card-title:hover {
+                        text-decoration: underline;
                     }
                     .card-meta {
                         font-size: 12px;
