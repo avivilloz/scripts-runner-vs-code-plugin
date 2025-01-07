@@ -46,6 +46,11 @@
                 "command": "scripts-runner.settings",
                 "title": "Settings",
                 "icon": "$(gear)"
+            },
+            {
+                "command": "scripts-runner.switchLayout",
+                "title": "Switch Layout",
+                "icon": "$(layout)"
             }
         ],
         "viewsContainers": {
@@ -60,8 +65,16 @@
         "views": {
             "scripts-runner": [
                 {
-                    "id": "scriptsExplorer",
-                    "name": "Scripts"
+                    "type": "tree",
+                    "id": "scriptsExplorerList",
+                    "name": "Scripts",
+                    "when": "scriptsRunner:viewType == 'list'"
+                },
+                {
+                    "type": "webview",
+                    "id": "scriptsExplorerCard",
+                    "name": "Scripts",
+                    "when": "scriptsRunner:viewType == 'card'"
                 }
             ]
         },
@@ -69,28 +82,33 @@
             "view/title": [
                 {
                     "command": "scripts-runner.refresh",
-                    "when": "view == scriptsExplorer",
+                    "when": "view =~ /scriptsExplorer(List|Card)/",
                     "group": "navigation"
                 },
                 {
                     "command": "scripts-runner.search",
-                    "when": "view == scriptsExplorer",
+                    "when": "view =~ /scriptsExplorer(List|Card)/",
                     "group": "navigation"
                 },
                 {
                     "command": "scripts-runner.filter",
-                    "when": "view == scriptsExplorer",
+                    "when": "view =~ /scriptsExplorer(List|Card)/",
                     "group": "navigation"
                 },
                 {
                     "command": "scripts-runner.clearFilters",
-                    "when": "view == scriptsExplorer && scriptsRunner.hasFilters",
+                    "when": "view =~ /scriptsExplorer(List|Card)/ && scriptsRunner.hasFilters",
                     "group": "navigation"
                 },
                 {
                     "command": "scripts-runner.settings",
-                    "when": "view == scriptsExplorer",
+                    "when": "view =~ /scriptsExplorer(List|Card)/",
                     "group": "navigation@0"
+                },
+                {
+                    "command": "scripts-runner.switchLayout",
+                    "when": "view =~ /scriptsExplorer(List|Card)/",
+                    "group": "navigation"
                 }
             ]
         },
@@ -185,6 +203,12 @@
                     "editPresentation": "multilineJson",
                     "order": 2,
                     "markdownDescription": "File extension command mappings. Click [Manage File Extensions](command:scripts-runner.configureFileExtensions) to open the configuration UI."
+                },
+                "scriptsRunner.viewType": {
+                    "type": "string",
+                    "enum": ["list", "card"],
+                    "default": "list",
+                    "description": "Layout type for scripts view"
                 }
             }
         },

@@ -3,8 +3,9 @@ import * as path from 'path';
 import { ScriptsSourceService } from '../services/scriptsSourceService'; // Updated import
 import { ScriptService } from '../services/scriptService';
 import { Script } from '../models/script';
+import { CardView } from '../views/cardView';
 
-export class ScriptsProvider implements vscode.TreeDataProvider<Script> {
+export class ScriptsProvider implements vscode.TreeDataProvider<Script>, vscode.WebviewViewProvider {
     private _onDidChangeTreeData: vscode.EventEmitter<Script | undefined | null | void> = new vscode.EventEmitter<Script | undefined | null | void>();
     readonly onDidChangeTreeData: vscode.Event<Script | undefined | null | void> = this._onDidChangeTreeData.event;
 
@@ -13,17 +14,56 @@ export class ScriptsProvider implements vscode.TreeDataProvider<Script> {
     private selectedCategories: string[] = [];
     private selectedSources: string[] = [];  // Add this line
     private scripts: Script[] = [];
+    private cardView: CardView;
+    private webviewView?: vscode.WebviewView;
 
     constructor(
         private scriptsSourceService: ScriptsSourceService,  // Updated type
-        private scriptService: ScriptService
-    ) { }
+        private scriptService: ScriptService,
+        private context: vscode.ExtensionContext
+    ) {
+        this.cardView = new CardView(context, script => {
+            vscode.commands.executeCommand('scripts-runner.execute', script);
+        });
+        // Load initial scripts
+        this.loadScripts();
+    }
+
+    // Add new method to load scripts
+    private async loadScripts(): Promise<void> {
+        const scriptsPaths = this.scriptsSourceService.getAllScriptsPaths();
+        this.scripts = await this.scriptService.findScripts(scriptsPaths);
+        this._onDidChangeTreeData.fire();
+    }
+
+    async resolveWebviewView(
+        webviewView: vscode.WebviewView,
+        _context: vscode.WebviewViewResolveContext,
+        _token: vscode.CancellationToken
+    ): Promise<void> {
+        this.webviewView = webviewView;
+        if (this.scripts.length === 0) {
+            await this.loadScripts();
+        }
+        await this.refresh();
+    }
 
     async refresh(): Promise<void> {
-        // Clear the scripts cache
         this.scripts = [];
-        // Trigger the tree view update
-        this._onDidChangeTreeData.fire();
+        const config = vscode.workspace.getConfiguration('scriptsRunner');
+        const viewType = config.get<string>('viewType', 'list');
+
+        // Load scripts regardless of view type
+        const scriptsPaths = this.scriptsSourceService.getAllScriptsPaths();
+        this.scripts = await this.scriptService.findScripts(scriptsPaths);
+
+        if (viewType === 'card' && this.webviewView) {
+            this.cardView.show(this.getFilteredScripts(), this.webviewView);
+            this._onDidChangeTreeData.fire(); // Refresh tree view as well
+        } else {
+            this.cardView.dispose();
+            this._onDidChangeTreeData.fire();
+        }
     }
 
     setSearchQuery(query: string): void {
@@ -113,54 +153,7 @@ export class ScriptsProvider implements vscode.TreeDataProvider<Script> {
     }
 
     async getChildren(): Promise<Script[]> {
-        try {
-            if (this.scripts.length === 0) {
-                const scriptsPaths = this.scriptsSourceService.getAllScriptsPaths();
-                this.scripts = await this.scriptService.findScripts(scriptsPaths);
-            }
-
-            let filteredScripts = this.scripts;
-
-            // Apply search filter
-            if (this.searchQuery) {
-                filteredScripts = filteredScripts.filter(script =>
-                    script.metadata.name.toLowerCase().includes(this.searchQuery) ||
-                    script.metadata.description.toLowerCase().includes(this.searchQuery)
-                );
-            }
-
-            // Apply tag filter
-            if (this.selectedTags.length > 0) {
-                filteredScripts = filteredScripts.filter(script =>
-                    script.metadata.tags?.some(tag => this.selectedTags.includes(tag))
-                );
-            }
-
-            // Apply category filter
-            if (this.selectedCategories.length > 0) {
-                filteredScripts = filteredScripts.filter(script =>
-                    script.metadata.category && this.selectedCategories.includes(script.metadata.category)
-                );
-            }
-
-            // Apply source filter
-            if (this.selectedSources.length > 0) {
-                filteredScripts = filteredScripts.filter(script =>
-                    this.selectedSources.includes(script.sourceName)
-                );
-            }
-
-            // Sort scripts by category and name
-            return filteredScripts.sort((a, b) =>
-                (a.metadata.category || '').localeCompare(b.metadata.category || '') ||
-                a.metadata.name.localeCompare(b.metadata.name)
-            );
-        } catch (error: unknown) {
-            console.error('Error getting scripts:', error);
-            const message = error instanceof Error ? error.message : 'Unknown error occurred';
-            vscode.window.showErrorMessage(`Error loading scripts: ${message}`);
-            return [];
-        }
+        return this.getFilteredScripts();
     }
 
     getAllTags(): string[] {
@@ -187,5 +180,39 @@ export class ScriptsProvider implements vscode.TreeDataProvider<Script> {
             sourcesSet.add(script.sourceName);
         });
         return Array.from(sourcesSet).sort();
+    }
+
+    private getFilteredScripts(): Script[] {
+        let filteredScripts = this.scripts;
+
+        if (this.searchQuery) {
+            filteredScripts = filteredScripts.filter(script =>
+                script.metadata.name.toLowerCase().includes(this.searchQuery) ||
+                script.metadata.description.toLowerCase().includes(this.searchQuery)
+            );
+        }
+
+        if (this.selectedTags.length > 0) {
+            filteredScripts = filteredScripts.filter(script =>
+                script.metadata.tags?.some(tag => this.selectedTags.includes(tag))
+            );
+        }
+
+        if (this.selectedCategories.length > 0) {
+            filteredScripts = filteredScripts.filter(script =>
+                script.metadata.category && this.selectedCategories.includes(script.metadata.category)
+            );
+        }
+
+        if (this.selectedSources.length > 0) {
+            filteredScripts = filteredScripts.filter(script =>
+                this.selectedSources.includes(script.sourceName)
+            );
+        }
+
+        return filteredScripts.sort((a, b) =>
+            (a.metadata.category || '').localeCompare(b.metadata.category || '') ||
+            a.metadata.name.localeCompare(b.metadata.name)
+        );
     }
 }

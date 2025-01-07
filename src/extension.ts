@@ -10,9 +10,12 @@ import * as os from 'os';
 export async function activate(context: vscode.ExtensionContext) {
     console.log('Scripts Runner extension is being activated');
 
+    // Set initial view type context
+    await vscode.commands.executeCommand('setContext', 'scriptsRunner:viewType', 'list');
+
     const scriptsSourceService = new ScriptsSourceService(context);  // Updated variable name
     const scriptService = new ScriptService();
-    const scriptsProvider = new ScriptsProvider(scriptsSourceService, scriptService);  // Updated parameter
+    const scriptsProvider = new ScriptsProvider(scriptsSourceService, scriptService, context);  // Updated parameter
     const sourceConfigProvider = new SourceConfigProvider(
         context,
         async () => {
@@ -45,9 +48,10 @@ export async function activate(context: vscode.ExtensionContext) {
         await config.update('fileExtensions', builtInCommands, true);
     }
 
-    // Register tree data provider
-    console.log('Registering tree data provider');
-    vscode.window.registerTreeDataProvider('scriptsExplorer', scriptsProvider);
+    // Register both providers
+    console.log('Registering providers');
+    vscode.window.registerTreeDataProvider('scriptsExplorerList', scriptsProvider);
+    vscode.window.registerWebviewViewProvider('scriptsExplorerCard', scriptsProvider);
 
     // Register all commands
     console.log('Registering extension commands');
@@ -197,13 +201,24 @@ export async function activate(context: vscode.ExtensionContext) {
         }
     });
 
+    let layoutCommand = vscode.commands.registerCommand('scripts-runner.switchLayout', async () => {
+        const config = vscode.workspace.getConfiguration('scriptsRunner');
+        const currentView = config.get<string>('viewType', 'list');
+        const newView = currentView === 'list' ? 'card' : 'list';
+        
+        await config.update('viewType', newView, true);
+        await vscode.commands.executeCommand('setContext', 'scriptsRunner:viewType', newView);
+        await scriptsProvider.refresh();
+    });
+
     context.subscriptions.push(
         refreshCommand,
         executeCommand,
         searchCommand,
         filterCommand,
         clearFiltersCommand,
-        settingsCommand  // Add the new unified settings command
+        settingsCommand,
+        layoutCommand
     );
 
     console.log('Scripts Runner extension activated successfully');
