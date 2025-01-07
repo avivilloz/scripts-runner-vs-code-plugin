@@ -88,6 +88,9 @@ export class CardView {
                         padding: 16px;
                         cursor: pointer;
                         transition: transform 0.2s;
+                        display: flex;
+                        flex-direction: column;
+                        min-height: 160px;
                     }
                     .card:hover {
                         transform: translateY(-2px);
@@ -129,11 +132,13 @@ export class CardView {
                     .card-description {
                         font-size: 13px;
                         margin-bottom: 12px;
+                        flex: 1;
                     }
                     .card-tags {
                         display: flex;
                         flex-wrap: wrap;
                         gap: 6px;
+                        margin-top: auto;
                     }
                     .tag {
                         border: 1px solid var(--vscode-focusBorder);
