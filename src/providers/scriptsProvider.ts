@@ -12,7 +12,9 @@ export class ScriptsProvider implements vscode.TreeDataProvider<Script>, vscode.
     private searchQuery: string = '';
     private selectedTags: string[] = [];
     private selectedCategories: string[] = [];
-    private selectedSources: string[] = [];  // Add this line
+    private selectedSources: string[] = [];
+    private showFavoritesOnly: boolean = false;
+    private favorites: Set<string>;
     private scripts: Script[] = [];
     private cardView: CardView;
     private webviewView?: vscode.WebviewView;
@@ -24,8 +26,9 @@ export class ScriptsProvider implements vscode.TreeDataProvider<Script>, vscode.
     ) {
         this.cardView = new CardView(context, script => {
             vscode.commands.executeCommand('scripts-runner.execute', script);
-        });
-        // Load initial scripts
+        }, this);
+        // Initialize favorites from storage
+        this.favorites = new Set(context.globalState.get<string[]>('favoriteScripts', []));
         this.loadScripts();
     }
 
@@ -182,8 +185,44 @@ export class ScriptsProvider implements vscode.TreeDataProvider<Script>, vscode.
         return Array.from(sourcesSet).sort();
     }
 
+    // Add methods to handle favorites
+    public toggleFavorite(script: Script): void {
+        const scriptId = this.getScriptId(script);
+        if (this.favorites.has(scriptId)) {
+            this.favorites.delete(scriptId);
+        } else {
+            this.favorites.add(scriptId);
+        }
+        // Save to storage
+        this.context.globalState.update('favoriteScripts', Array.from(this.favorites));
+        this.refresh();
+    }
+
+    public isFavorite(script: Script): boolean {
+        return this.favorites.has(this.getScriptId(script));
+    }
+
+    private getScriptId(script: Script): string {
+        return `${script.sourceName}:${script.path}`;
+    }
+
+    public setShowFavoritesOnly(show: boolean): void {
+        this.showFavoritesOnly = show;
+        this.refresh();
+    }
+
+    public isShowingFavoritesOnly(): boolean {
+        return this.showFavoritesOnly;
+    }
+
     private getFilteredScripts(): Script[] {
         let filteredScripts = this.scripts;
+
+        if (this.showFavoritesOnly) {
+            filteredScripts = filteredScripts.filter(script => 
+                this.favorites.has(this.getScriptId(script))
+            );
+        }
 
         if (this.searchQuery) {
             filteredScripts = filteredScripts.filter(script =>

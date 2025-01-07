@@ -7,7 +7,8 @@ export class CardView {
 
     constructor(
         private context: vscode.ExtensionContext,
-        private onScriptSelected: (script: Script) => void
+        private onScriptSelected: (script: Script) => void,
+        private scriptsProvider: any
     ) {}
 
     public show(scripts: Script[], webviewView: vscode.WebviewView) {
@@ -18,11 +19,19 @@ export class CardView {
         
         // Add new message handler
         const messageHandler = this.webviewView.webview.onDidReceiveMessage(message => {
-            if (message.command === 'executeScript') {
-                const script = scripts.find(s => s.path === message.scriptPath);
-                if (script) {
-                    this.onScriptSelected(script);
-                }
+            switch (message.command) {
+                case 'executeScript':
+                    const script = scripts.find(s => s.path === message.scriptPath);
+                    if (script) {
+                        this.onScriptSelected(script);
+                    }
+                    break;
+                case 'toggleFavorite':
+                    const scriptToToggle = scripts.find(s => s.path === message.scriptPath);
+                    if (scriptToToggle) {
+                        this.scriptsProvider.toggleFavorite(scriptToToggle);
+                    }
+                    break;
             }
         });
         
@@ -45,6 +54,52 @@ export class CardView {
         const codiconCss = `
             .codicon-source-control:before { content: "\\ea68"; }
             .codicon-symbol-parameter:before { content: "\\ea92"; }
+            .codicon-star-empty:before { content: "\\ea6a"; }
+            .codicon-star-full:before { content: "\\eb59"; }
+        `;
+
+        // Add favorite button styles
+        const styles = `
+            .favorite-btn {
+                position: absolute;
+                bottom: 12px;
+                right: 12px;
+                background: none;
+                border: none;
+                padding: 4px;
+                cursor: pointer;
+                color: var(--vscode-descriptionForeground);
+                opacity: 0.6;
+                z-index: 10;
+            }
+            .favorite-btn .codicon {
+                font-size: 24px !important;
+            }
+            .favorite-btn:hover {
+                opacity: 1;
+            }
+            .favorite-btn.active {
+                color: var(--vscode-textLink-activeForeground);
+                opacity: 1;
+            }
+            .param-indicator {
+                display: inline-flex;
+                align-items: center;
+                margin-left: 8px;
+                font-size: 14px;
+                opacity: 0.7;
+            }
+            .card-title {
+                display: flex;
+                align-items: center;
+                gap: 4px;
+            }
+            .param-indicator {
+                font-size: 18px;
+                color: var(--vscode-descriptionForeground);
+                position: relative;
+                top: 2px;
+            }
         `;
 
         this.webviewView.webview.html = `
@@ -102,9 +157,6 @@ export class CardView {
                         margin-bottom: 12px;
                         color: var(--vscode-textLink-foreground);
                     }
-                    // .card-title:hover {
-                    //     text-decoration: underline;
-                    // }
                     .card-meta {
                         font-size: 12px;
                         color: var(--vscode-descriptionForeground);
@@ -118,16 +170,6 @@ export class CardView {
                         display: inline-flex;
                         align-items: center;
                         opacity: 0.8;
-                    }
-                    .param-indicator {
-                        position: absolute;
-                        bottom: 12px;
-                        right: 12px;
-                        display: flex;
-                        align-items: center;
-                        gap: 4px;
-                        font-size: 12px;
-                        color: var(--vscode-descriptionForeground);
                     }
                     .card-description {
                         font-size: 13px;
@@ -169,6 +211,7 @@ export class CardView {
                         padding: 2px 8px;
                         border-radius: 4px;
                     }
+                    ${styles}
                 </style>
             </head>
             <body>
@@ -177,10 +220,12 @@ export class CardView {
                         <div class="card" 
                              onclick="executeScript('${script.path}')"
                              data-tooltip="${this.getTooltipContent(script)}">
+                            <div class="card-title">
+                                ${script.metadata.name}${script.metadata.parameters?.length ? `<i class="codicon codicon-symbol-parameter param-indicator"></i>` : ''}
+                            </div>
                             ${script.metadata.category ? 
                                 `<div class="card-category">${script.metadata.category}</div>` : 
                                 ''}
-                            <div class="card-title">${script.metadata.name}</div>
                             <div class="card-meta">
                                 <i class="codicon codicon-source-control"></i>
                                 ${script.sourceName}
@@ -195,11 +240,10 @@ export class CardView {
                                     `).join('')}
                                 </div>
                             ` : ''}
-                            ${script.metadata.parameters?.length ? `
-                                <div class="param-indicator">
-                                    <i class="codicon codicon-symbol-parameter"></i>
-                                </div>
-                            ` : ''}
+                            <button class="favorite-btn ${this.scriptsProvider.isFavorite(script) ? 'active' : ''}" 
+                                    onclick="event.preventDefault(); event.stopPropagation(); toggleFavorite('${script.path}', event)">
+                                <i class="codicon ${this.scriptsProvider.isFavorite(script) ? 'codicon-star-full' : 'codicon-star-empty'}"></i>
+                            </button>
                         </div>
                     `).join('')}
                 </div>
@@ -213,6 +257,14 @@ export class CardView {
                         vscode.postMessage({
                             command: 'executeScript',
                             scriptPath: path
+                        });
+                    }
+
+                    function toggleFavorite(scriptPath, event) {
+                        event.stopPropagation();
+                        vscode.postMessage({
+                            command: 'toggleFavorite',
+                            scriptPath: scriptPath
                         });
                     }
 

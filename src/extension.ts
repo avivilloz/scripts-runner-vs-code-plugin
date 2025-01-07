@@ -216,6 +216,16 @@ export async function activate(context: vscode.ExtensionContext) {
         await scriptsProvider.refresh();
     });
 
+    // Add new command registration
+    let toggleFavoriteCommand = vscode.commands.registerCommand('scripts-runner.toggleFavorite', (script) => {
+        scriptsProvider.toggleFavorite(script);
+    });
+
+    let toggleFavoritesViewCommand = vscode.commands.registerCommand('scripts-runner.toggleFavoritesView', () => {
+        scriptsProvider.setShowFavoritesOnly(!scriptsProvider.isShowingFavoritesOnly());
+        updateCommandIcons();
+    });
+
     context.subscriptions.push(
         refreshCommand,
         executeCommand,
@@ -223,7 +233,9 @@ export async function activate(context: vscode.ExtensionContext) {
         filterCommand,
         clearFiltersCommand,
         settingsCommand,
-        layoutCommand
+        layoutCommand,
+        toggleFavoriteCommand,
+        toggleFavoritesViewCommand
     );
 
     console.log('Scripts Runner extension activated successfully');

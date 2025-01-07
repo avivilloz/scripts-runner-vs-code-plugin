@@ -51,6 +51,15 @@
                 "command": "scripts-runner.switchLayout",
                 "title": "Switch Layout",
                 "icon": "$(layout)"
+            },
+            {
+                "command": "scripts-runner.toggleFavorite",
+                "title": "Toggle Favorite"
+            },
+            {
+                "command": "scripts-runner.toggleFavoritesView",
+                "title": "Show Favorites",
+                "icon": "$(star)"
             }
         ],
         "viewsContainers": {
@@ -81,34 +90,39 @@
         "menus": {
             "view/title": [
                 {
+                    "command": "scripts-runner.settings",
+                    "when": "view =~ /scriptsExplorer(List|Card)/",
+                    "group": "navigation@7"
+                },
+                {
                     "command": "scripts-runner.refresh",
                     "when": "view =~ /scriptsExplorer(List|Card)/",
-                    "group": "navigation"
+                    "group": "navigation@5"
+                },
+                {
+                    "command": "scripts-runner.toggleFavoritesView",
+                    "when": "view =~ /scriptsExplorer(List|Card)/",
+                    "group": "navigation@4"
                 },
                 {
                     "command": "scripts-runner.search",
                     "when": "view =~ /scriptsExplorer(List|Card)/",
-                    "group": "navigation"
+                    "group": "navigation@2"
                 },
                 {
                     "command": "scripts-runner.filter",
                     "when": "view =~ /scriptsExplorer(List|Card)/",
-                    "group": "navigation"
+                    "group": "navigation@3"
                 },
                 {
                     "command": "scripts-runner.clearFilters",
                     "when": "view =~ /scriptsExplorer(List|Card)/ && scriptsRunner.hasFilters",
-                    "group": "navigation"
-                },
-                {
-                    "command": "scripts-runner.settings",
-                    "when": "view =~ /scriptsExplorer(List|Card)/",
-                    "group": "navigation@0"
+                    "group": "navigation@1"
                 },
                 {
                     "command": "scripts-runner.switchLayout",
                     "when": "view =~ /scriptsExplorer(List|Card)/",
-                    "group": "navigation"
+                    "group": "navigation@6"
                 }
             ]
         },
