@@ -179,7 +179,11 @@ export class ScriptService {
             const params: string[] = [];
 
             if (script.metadata.parameters) {
-                const paramValues = await this.inputFormProvider.showParameterInputForm(script.metadata.parameters);
+                const paramValues = await this.inputFormProvider.showParameterInputForm(
+                    script.metadata.parameters,
+                    script.metadata.name,
+                    script.metadata.description
+                );
 
                 if (!paramValues) {
                     if (terminalSettings.new) {  // Changed from !terminalSettings.useCurrent

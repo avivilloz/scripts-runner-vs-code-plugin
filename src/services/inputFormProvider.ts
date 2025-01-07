@@ -2,22 +2,45 @@ import * as vscode from 'vscode';
 import { ParameterMetadata } from '../models/script';
 
 export class InputFormProvider {
-    async showParameterInputForm(parameters: ParameterMetadata[]): Promise<Map<string, string> | undefined> {
+    async showParameterInputForm(parameters: ParameterMetadata[], scriptName: string, scriptDescription: string): Promise<Map<string, string> | undefined> {
         if (!parameters || parameters.length === 0) {
             return new Map();
         }
 
         const panel = vscode.window.createWebviewPanel(
             'scriptParameters',
-            'Script Parameters',
+            scriptName,
             vscode.ViewColumn.One,
             { enableScripts: true }
         );
 
+        const scriptInfoHtml = `
+            <div class="script-info">
+                <h2>${scriptName}</h2>
+                <p class="description">${scriptDescription}</p>
+            </div>
+        `;
+
+        const scriptInfoStyles = `
+            .script-info {
+                margin-bottom: 24px;
+                padding-bottom: 16px;
+                border-bottom: 1px solid var(--vscode-input-border);
+            }
+            .script-info h2 {
+                margin: 0 0 8px 0;
+                color: var(--vscode-foreground);
+            }
+            .description {
+                margin: 0;
+                color: var(--vscode-descriptionForeground);
+            }
+        `;
+
         const paramValues = new Map<string, string>();
 
         return new Promise((resolve) => {
-            panel.webview.html = this.getWebviewContent(parameters);
+            panel.webview.html = this.getWebviewContent(parameters, scriptInfoHtml, scriptInfoStyles);
 
             panel.webview.onDidReceiveMessage(
                 message => {
@@ -49,7 +72,7 @@ export class InputFormProvider {
         });
     }
 
-    private getWebviewContent(parameters: ParameterMetadata[]): string {
+    private getWebviewContent(parameters: ParameterMetadata[], scriptInfoHtml: string, scriptInfoStyles: string): string {
         const inputs = parameters.map(param => {
             const inputHtml = this.getInputHtml(param);
             return `
@@ -71,6 +94,7 @@ export class InputFormProvider {
                 <meta name="viewport" content="width=device-width, initial-scale=1.0">
                 <title>Script Parameters</title>
                 <style>
+                    ${scriptInfoStyles}
                     body { 
                         padding: 20px; 
                         max-width: 800px;
@@ -162,6 +186,7 @@ export class InputFormProvider {
                 </style>
             </head>
             <body>
+                ${scriptInfoHtml}
                 <form id="paramForm">
                     ${inputs}
                     <div class="buttons">
