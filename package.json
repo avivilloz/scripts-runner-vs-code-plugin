@@ -239,7 +239,7 @@
     },
     "scripts": {
         "vscode:prepublish": "npm run compile",
-        "compile": "tsc -p ./ && node scripts/copy-codicons.js",
+        "compile": "tsc -p ./ && ts-node scripts/copy-codicons.ts",
         "watch": "tsc -watch -p ./",
         "test": "node ./out/test/runTest.js",
         "pretest": "npm run compile",
@@ -266,6 +266,7 @@
         "@vscode/vsce": "^2.24.0",
         "glob": "^8.0.0",
         "mocha": "^10.2.0",
-        "typescript": "^5.0.0"
+        "typescript": "^5.0.0",
+        "ts-node": "^10.9.2"
     }
 }
