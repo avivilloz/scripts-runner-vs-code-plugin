@@ -8,7 +8,8 @@ interface BaseConfig {
     type: 'git' | 'local';
     name?: string;
     enabled?: boolean;
-    builtIn?: boolean;  // New property
+    builtIn?: boolean;
+    isWorkspace?: boolean;
 }
 
 interface GitRepoConfig extends BaseConfig {
@@ -184,6 +185,70 @@ export class ScriptsSourceService {
                 enabled: true
             });
             await config.update('sources', sources, true);
+        }
+    }
+
+    private async addWorkspaceSource(workspacePath: string): Promise<void> {
+        const config = vscode.workspace.getConfiguration('scriptsRunner');
+        const sources = config.get<ScriptsSourceConfig[]>('sources', []);
+
+        // Check if workspace source already exists
+        const workspaceSourceExists = sources.some(
+            source => source.type === 'local' && 
+                     source.path === workspacePath && 
+                     source.isWorkspace === true
+        );
+
+        if (!workspaceSourceExists) {
+            const workspaceName = path.basename(workspacePath);
+            sources.push({
+                type: 'local',
+                name: `Workspace: ${workspaceName}`,
+                path: workspacePath,
+                isWorkspace: true,
+                enabled: true
+            });
+
+            await config.update('sources', sources, true);
+        }
+    }
+
+    private async removeWorkspaceSource(workspacePath: string): Promise<void> {
+        const config = vscode.workspace.getConfiguration('scriptsRunner');
+        const sources = config.get<ScriptsSourceConfig[]>('sources', []);
+
+        const updatedSources = sources.filter(
+            source => !(source.type === 'local' && 
+                       source.path === workspacePath && 
+                       source.isWorkspace === true)
+        );
+
+        if (sources.length !== updatedSources.length) {
+            await config.update('sources', updatedSources, true);
+        }
+    }
+
+    // Add this method to handle workspace changes
+    public async handleWorkspaceChange(): Promise<void> {
+        const workspaceFolders = vscode.workspace.workspaceFolders;
+        
+        // Get current workspace sources
+        const config = vscode.workspace.getConfiguration('scriptsRunner');
+        const sources = config.get<ScriptsSourceConfig[]>('sources', []);
+        const workspaceSources = sources.filter(source => source.isWorkspace === true);
+        
+        // Remove sources for closed workspaces
+        for (const source of workspaceSources) {
+            if (source.type === 'local' && !workspaceFolders?.some(folder => folder.uri.fsPath === source.path)) {
+                await this.removeWorkspaceSource(source.path);
+            }
+        }
+
+        // Add sources for new workspaces
+        if (workspaceFolders) {
+            for (const folder of workspaceFolders) {
+                await this.addWorkspaceSource(folder.uri.fsPath);
+            }
         }
     }
 }

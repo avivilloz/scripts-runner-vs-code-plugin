@@ -6,6 +6,7 @@ import { SourceConfigProvider } from './services/sourceConfigProvider';
 import { FileExtensionConfigProvider } from './services/fileExtensionConfigProvider';
 import * as path from 'path';
 import * as os from 'os';
+import { workspace } from 'vscode';
 
 export async function activate(context: vscode.ExtensionContext) {
     console.log('Scripts Runner extension is being activated');
@@ -238,6 +239,18 @@ export async function activate(context: vscode.ExtensionContext) {
         scriptsProvider.setShowPinnedOnly(!scriptsProvider.isShowingPinnedOnly());
         updateCommandIcons();
     });
+
+    // Handle initial workspace folders
+    await scriptsSourceService.handleWorkspaceChange();
+
+    // Listen for workspace folder changes
+    const workspaceFoldersChangeListener = workspace.onDidChangeWorkspaceFolders(async () => {
+        await scriptsSourceService.handleWorkspaceChange();
+        await scriptsProvider.refresh();
+    });
+
+    // Add the listener to subscriptions for cleanup
+    context.subscriptions.push(workspaceFoldersChangeListener);
 
     context.subscriptions.push(
         refreshCommand,
