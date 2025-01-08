@@ -39,7 +39,7 @@ export class SourceConfigProvider {
                         const config = vscode.workspace.getConfiguration('scriptsRunner');
                         const sources = config.get<any[]>('sources', []);
                         sources.push(message.source);
-                        await config.update('sources', sources, true);
+                        await config.update('sources', sources, false);
                         await this.onSourceAdded();  // Call the refresh callback
                         // Update the webview with new sources
                         this.panel?.webview.postMessage({
@@ -94,7 +94,7 @@ export class SourceConfigProvider {
         const updatedSources = sources.map(source =>
             source.name === name ? { ...source, enabled } : source
         );
-        await config.update('sources', updatedSources, true);
+        await config.update('sources', updatedSources, false);
         this.panel?.webview.postMessage({
             command: 'updateSources',
             sources: updatedSources
@@ -407,7 +407,7 @@ export class SourceConfigProvider {
         const config = vscode.workspace.getConfiguration('scriptsRunner');
         const sources = config.get<any[]>('sources', []);
         const updatedSources = sources.filter(source => source.name !== name);
-        await config.update('sources', updatedSources, true);
+        await config.update('sources', updatedSources, false);
         this.panel?.webview.postMessage({
             command: 'updateSources',
             sources: updatedSources

@@ -27,8 +27,8 @@ export class ScriptsProvider implements vscode.TreeDataProvider<Script>, vscode.
         this.cardView = new CardView(context, script => {
             vscode.commands.executeCommand('scripts-runner.execute', script);
         }, this);
-        // Initialize pinned scripts from storage
-        this.pinnedScripts = new Set(context.globalState.get<string[]>('pinnedScripts', []));
+        // Change from globalState to workspaceState
+        this.pinnedScripts = new Set(context.workspaceState.get<string[]>('pinnedScripts', []));
         this.loadScripts();
     }
 
@@ -193,8 +193,8 @@ export class ScriptsProvider implements vscode.TreeDataProvider<Script>, vscode.
         } else {
             this.pinnedScripts.add(scriptId);
         }
-        // Save to storage
-        this.context.globalState.update('pinnedScripts', Array.from(this.pinnedScripts));
+        // Change from globalState to workspaceState
+        this.context.workspaceState.update('pinnedScripts', Array.from(this.pinnedScripts));
         this.refresh();
     }
 

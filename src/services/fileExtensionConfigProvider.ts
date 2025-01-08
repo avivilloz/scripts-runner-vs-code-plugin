@@ -67,7 +67,7 @@ export class FileExtensionConfigProvider {
                             extensions.push(message.config);
                         }
 
-                        await config.update('fileExtensions', extensions, true);
+                        await config.update('fileExtensions', extensions, false);
                         await this.onConfigurationChanged();
 
                         this.panel?.webview.postMessage({
@@ -88,7 +88,7 @@ export class FileExtensionConfigProvider {
                                 e.system === message.system)
                         );
 
-                        await config.update('fileExtensions', updatedExtensions, true);
+                        await config.update('fileExtensions', updatedExtensions, false);
                         await this.onConfigurationChanged();
 
                         this.panel?.webview.postMessage({

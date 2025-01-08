@@ -11,14 +11,18 @@ import { workspace } from 'vscode';
 export async function activate(context: vscode.ExtensionContext) {
     console.log('Scripts Runner extension is being activated');
 
-    // Initialize workspace-specific settings if they don't exist
+    // Initialize workspace-specific settings with clean state
     const config = vscode.workspace.getConfiguration('scriptsRunner');
     
-    // Only initialize if workspace settings don't exist
+    // Reset all settings if they don't exist in current workspace
+    // This ensures each environment starts fresh
     if (!config.inspect('sources')?.workspaceValue) {
+        // Start with empty sources except built-in
         await config.update('sources', [], false);
     }
+
     if (!config.inspect('fileExtensions')?.workspaceValue) {
+        // Reset to default file extensions for current platform
         const builtInCommands = [
             { extension: '.sh', system: 'linux', command: 'bash', builtIn: true },
             { extension: '.sh', system: 'darwin', command: 'bash', builtIn: true },
@@ -26,6 +30,7 @@ export async function activate(context: vscode.ExtensionContext) {
         ];
         await config.update('fileExtensions', builtInCommands, false);
     }
+
     if (!config.inspect('viewType')?.workspaceValue) {
         await config.update('viewType', 'card', false);
     }
@@ -54,7 +59,7 @@ export async function activate(context: vscode.ExtensionContext) {
     const scriptService = new ScriptService(context);
     const scriptsProvider = new ScriptsProvider(scriptsSourceService, scriptService, context);
 
-    // Initialize built-in sources
+    // Initialize built-in sources for this environment
     await scriptsSourceService.initializeBuiltInSources();
 
     // Initialize built-in file extension commands if none exist
@@ -67,7 +72,7 @@ export async function activate(context: vscode.ExtensionContext) {
             { extension: '.ps1', system: 'windows', command: 'powershell -File', builtIn: true },
         ];
 
-        await config.update('fileExtensions', builtInCommands, true);
+        await config.update('fileExtensions', builtInCommands, false);
     }
 
     const sourceConfigProvider = new SourceConfigProvider(
@@ -224,7 +229,7 @@ export async function activate(context: vscode.ExtensionContext) {
             {
                 label: "Open Settings",
                 description: "Edit configuration in Settings UI",
-                action: () => vscode.commands.executeCommand('workbench.action.openSettings', 'scriptsRunner')
+                action: () => vscode.commands.executeCommand('workbench.action.openWorkspaceSettings', 'scriptsRunner')
             }
         ];
 
@@ -243,9 +248,8 @@ export async function activate(context: vscode.ExtensionContext) {
         const currentView = config.get<string>('viewType', 'card');
         const newView = currentView === 'list' ? 'card' : 'list';
         
-        // Update configuration
-        await config.update('viewType', newView, true);
-        // Context will be updated by the configuration change listener
+        // Change from true to false
+        await config.update('viewType', newView, false);
     });
 
     // Add new command registration
