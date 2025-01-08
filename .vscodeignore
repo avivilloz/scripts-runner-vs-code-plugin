@@ -3,6 +3,7 @@
 src/**
 .gitignore
 .yarnrc
+vsc-extension-quickstart.md
 **/tsconfig.json
 **/.eslintrc.json
 **/*.map
@@ -16,9 +17,12 @@ node_modules/**
 !node_modules/@kwsites/**
 !node_modules/debug/**
 !node_modules/ms/**
+!node_modules/@vscode/codicons/dist/codicon.ttf
 
 # Include compiled output
 !out/**/*.js
+!out/node_modules/@vscode/codicons/dist/codicon.ttf
+!dist/node_modules/@vscode/codicons/dist/codicon.ttf
 
 # Keep documentation
 !README.md
@@ -31,3 +35,4 @@ node_modules/**
 test/**
 package-lock.json
 *.vsix
+scripts/**

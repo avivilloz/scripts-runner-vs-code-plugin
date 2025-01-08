@@ -271,10 +271,5 @@
         "mocha": "^10.2.0",
         "typescript": "^5.0.0",
         "ts-node": "^10.9.2"
-    },
-    "files": [
-        "out/**/*",
-        "dist/**/*",
-        "node_modules/@vscode/codicons/dist/codicon.ttf"
-    ]
+    }
 }
