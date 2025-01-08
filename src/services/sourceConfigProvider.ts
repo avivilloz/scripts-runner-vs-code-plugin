@@ -1,6 +1,8 @@
 import * as vscode from 'vscode';
 import { ConfigurationTarget } from 'vscode';
 import { getGlobalConfiguration, updateGlobalConfiguration } from '../utils/configUtils';
+import simpleGit from 'simple-git';
+import fs from 'fs';
 
 export class SourceConfigProvider {
     public static readonly viewType = 'scriptsRunner.configureSource';
@@ -38,20 +40,9 @@ export class SourceConfigProvider {
             switch (message.command) {
                 case 'addSource':
                     try {
-                        const config = vscode.workspace.getConfiguration('scriptsRunner');
-                        const sources = config.get<any[]>('sources', []);
-                        sources.push(message.source);
-                        await this.updateConfig(sources);  // Use the new method
-                        await this.onSourceAdded();  // Call the refresh callback
-                        // Update the webview with new sources
-                        this.panel?.webview.postMessage({
-                            command: 'updateSources',
-                            sources: sources
-                        });
-                        vscode.window.showInformationMessage('Source added successfully');
-                        // Remove: this.panel?.dispose();
+                        await this.addSource(message.source);
                     } catch (error) {
-                        vscode.window.showErrorMessage('Failed to add source');
+                        // Error already handled in addSource
                     }
                     break;
                 case 'browseLocalPath':
@@ -419,5 +410,48 @@ export class SourceConfigProvider {
 
     private async updateConfig(sources: any[]): Promise<void> {
         await updateGlobalConfiguration('sources', sources);
+    }
+
+    private async validateSource(source: any): Promise<void> {
+        if (source.type === 'git') {
+            try {
+                const git = simpleGit();
+                await git.listRemote([source.url]);
+            } catch (error: unknown) {
+                throw new Error(`Failed to access git repository: ${(error as Error).message}`);
+            }
+        } else if (source.type === 'local') {
+            if (!fs.existsSync(source.path)) {
+                throw new Error(`Local path does not exist: ${source.path}`);
+            }
+            try {
+                await fs.promises.access(source.path, fs.constants.R_OK);
+            } catch (error: unknown) {
+                throw new Error(`Cannot access local path: ${(error as Error).message}`);
+            }
+        }
+    }
+
+    private async addSource(source: any): Promise<void> {
+        try {
+            // Validate source before adding
+            await this.validateSource(source);
+
+            // If validation passes, add to settings
+            const sources = getGlobalConfiguration<any[]>('sources', []);
+            sources.push(source);
+            await updateGlobalConfiguration('sources', sources);
+            
+            await this.onSourceAdded();
+            this.panel?.webview.postMessage({
+                command: 'updateSources',
+                sources: sources
+            });
+            vscode.window.showInformationMessage('Source added successfully');
+        } catch (error: any) {
+            // Show specific error message
+            vscode.window.showErrorMessage(`Failed to add source: ${error.message}`);
+            throw error; // Re-throw to prevent UI updates
+        }
     }
 }
