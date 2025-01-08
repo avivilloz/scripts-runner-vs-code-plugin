@@ -3,7 +3,7 @@
     "name": "scripts-runner",
     "displayName": "Scripts Runner",
     "description": "Execute scripts from git repositories with parameters",
-    "version": "0.0.23",
+    "version": "0.0.24",
     "icon": "icon.png",
     "repository": {
         "type": "git",
@@ -18,6 +18,10 @@
     ],
     "activationEvents": [
         "onStartupFinished"
+    ],
+    "extensionKind": [
+        "workspace",
+        "ui"
     ],
     "main": "./out/extension.js",
     "contributes": {
@@ -177,7 +181,7 @@
                     "editPresentation": "multilineJson",
                     "order": 1,
                     "markdownDescription": "Script sources configuration. Click [Manage Sources](command:scripts-runner.configureSource) to open the configuration UI.",
-                    "scope": "resource"
+                    "scope": "machine-overridable"
                 },
                 "scriptsRunner.fileExtensions": {
                     "type": "array",
@@ -218,7 +222,7 @@
                     "editPresentation": "multilineJson",
                     "order": 2,
                     "markdownDescription": "File extension command mappings. Click [Manage File Extensions](command:scripts-runner.configureFileExtensions) to open the configuration UI.",
-                    "scope": "resource"
+                    "scope": "machine-overridable"
                 },
                 "scriptsRunner.viewType": {
                     "type": "string",
@@ -228,7 +232,7 @@
                     ],
                     "default": "card",
                     "description": "Layout type for scripts view",
-                    "scope": "resource"
+                    "scope": "machine-overridable"
                 }
             }
         },

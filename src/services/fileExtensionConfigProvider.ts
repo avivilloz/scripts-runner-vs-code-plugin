@@ -67,7 +67,7 @@ export class FileExtensionConfigProvider {
                             extensions.push(message.config);
                         }
 
-                        await config.update('fileExtensions', extensions, false);
+                        await this.updateConfig(extensions);
                         await this.onConfigurationChanged();
 
                         this.panel?.webview.postMessage({
@@ -88,7 +88,7 @@ export class FileExtensionConfigProvider {
                                 e.system === message.system)
                         );
 
-                        await config.update('fileExtensions', updatedExtensions, false);
+                        await this.updateConfig(updatedExtensions);
                         await this.onConfigurationChanged();
 
                         this.panel?.webview.postMessage({
@@ -337,5 +337,10 @@ export class FileExtensionConfigProvider {
             </script>
         </body>
         </html>`;
+    }
+
+    private async updateConfig(extensions: FileExtensionConfig[]): Promise<void> {
+        const config = vscode.workspace.getConfiguration('scriptsRunner');
+        await config.update('fileExtensions', extensions, vscode.ConfigurationTarget.Workspace);
     }
 }

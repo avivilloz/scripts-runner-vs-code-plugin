@@ -39,7 +39,7 @@ export class SourceConfigProvider {
                         const config = vscode.workspace.getConfiguration('scriptsRunner');
                         const sources = config.get<any[]>('sources', []);
                         sources.push(message.source);
-                        await config.update('sources', sources, false);
+                        await this.updateConfig(sources);  // Use the new method
                         await this.onSourceAdded();  // Call the refresh callback
                         // Update the webview with new sources
                         this.panel?.webview.postMessage({
@@ -413,5 +413,10 @@ export class SourceConfigProvider {
             sources: updatedSources
         });
         await this.onSourceAdded(); // Refresh scripts list
+    }
+
+    private async updateConfig(sources: any[]): Promise<void> {
+        const config = vscode.workspace.getConfiguration('scriptsRunner');
+        await config.update('sources', sources, vscode.ConfigurationTarget.Workspace);
     }
 }

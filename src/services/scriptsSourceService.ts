@@ -2,7 +2,7 @@ import * as vscode from 'vscode';
 import * as path from 'path';
 import simpleGit, { SimpleGit } from 'simple-git';
 import * as fs from 'fs';
-import { getUserSourcesPath, ensureUserSourcesDirectory } from '../utils/pathUtils';
+import { getUserSourcesPath, ensureUserSourcesDirectory, getEnvironmentPath } from '../utils/pathUtils';
 
 interface BaseConfig {
     type: 'git' | 'local';
@@ -32,7 +32,7 @@ export class ScriptsSourceService {
 
     constructor(private context: vscode.ExtensionContext) {
         this.userSourcesPath = getUserSourcesPath();
-        this.builtInSourcesPath = path.join(context.extensionPath, 'sources');
+        this.builtInSourcesPath = path.join(getEnvironmentPath(context.extensionUri), 'sources');
     }
 
     private getRepoPath(repoUrl: string): string {

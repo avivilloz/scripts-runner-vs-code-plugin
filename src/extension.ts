@@ -7,32 +7,35 @@ import { FileExtensionConfigProvider } from './services/fileExtensionConfigProvi
 import * as path from 'path';
 import * as os from 'os';
 import { workspace } from 'vscode';
+import { getEnvironmentPath } from './utils/pathUtils';  // We'll add this function
 
 export async function activate(context: vscode.ExtensionContext) {
     console.log('Scripts Runner extension is being activated');
 
-    // Initialize workspace-specific settings with clean state
+    // Get environment-specific paths
+    const environmentPath = getEnvironmentPath(context.extensionUri);
+    
+    // Initialize environment-specific settings with clean state
     const config = vscode.workspace.getConfiguration('scriptsRunner');
     
-    // Reset all settings if they don't exist in current workspace
-    // This ensures each environment starts fresh
+    // Reset all settings if they don't exist in current environment
     if (!config.inspect('sources')?.workspaceValue) {
-        // Start with empty sources except built-in
-        await config.update('sources', [], false);
+        // Start with empty sources
+        await config.update('sources', [], vscode.ConfigurationTarget.Workspace);
     }
 
     if (!config.inspect('fileExtensions')?.workspaceValue) {
-        // Reset to default file extensions for current platform
+        // Set default file extensions for current platform
         const builtInCommands = [
             { extension: '.sh', system: 'linux', command: 'bash', builtIn: true },
             { extension: '.sh', system: 'darwin', command: 'bash', builtIn: true },
             { extension: '.ps1', system: 'windows', command: 'powershell -File', builtIn: true },
         ];
-        await config.update('fileExtensions', builtInCommands, false);
+        await config.update('fileExtensions', builtInCommands, vscode.ConfigurationTarget.Workspace);
     }
 
     if (!config.inspect('viewType')?.workspaceValue) {
-        await config.update('viewType', 'card', false);
+        await config.update('viewType', 'card', vscode.ConfigurationTarget.Workspace);
     }
 
     // Get initial view type from configuration
