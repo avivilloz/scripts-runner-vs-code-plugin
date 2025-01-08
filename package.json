@@ -3,7 +3,7 @@
     "name": "scripts-runner",
     "displayName": "Scripts Runner",
     "description": "Execute scripts from git repositories with parameters",
-    "version": "0.0.21",
+    "version": "0.0.22",
     "icon": "icon.png",
     "repository": {
         "type": "git",
