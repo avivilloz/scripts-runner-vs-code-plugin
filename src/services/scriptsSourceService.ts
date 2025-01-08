@@ -172,20 +172,27 @@ export class ScriptsSourceService {
             return;
         }
 
-        // Add built-in source to configuration if not present
+        // Get current configuration
         const config = vscode.workspace.getConfiguration('scriptsRunner');
         const sources = config.get<ScriptsSourceConfig[]>('sources', []);
 
-        if (!sources.some(s => s.builtIn)) {
+        // Find and update built-in source if it exists
+        const builtInIndex = sources.findIndex(s => s.builtIn);
+        if (builtInIndex >= 0) {
+            if (sources[builtInIndex].type === 'local') {
+                (sources[builtInIndex] as LocalPathConfig).path = builtInPath;
+            }
+        } else {
             sources.push({
                 type: 'local',
                 name: 'Built-in',
-                path: builtInPath,  // Point directly to extension's scripts
+                path: builtInPath,
                 builtIn: true,
                 enabled: true
-            });
-            await config.update('sources', sources, true);
+            } as LocalPathConfig);
         }
+
+        await config.update('sources', sources, true);
     }
 
     private async addWorkspaceSource(workspacePath: string): Promise<void> {
