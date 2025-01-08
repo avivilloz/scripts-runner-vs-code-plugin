@@ -176,7 +176,8 @@
                     "description": "Script sources configuration",
                     "editPresentation": "multilineJson",
                     "order": 1,
-                    "markdownDescription": "Script sources configuration. Click [Manage Sources](command:scripts-runner.configureSource) to open the configuration UI."
+                    "markdownDescription": "Script sources configuration. Click [Manage Sources](command:scripts-runner.configureSource) to open the configuration UI.",
+                    "scope": "resource"
                 },
                 "scriptsRunner.fileExtensions": {
                     "type": "array",
@@ -216,7 +217,8 @@
                     "description": "File extension command mappings",
                     "editPresentation": "multilineJson",
                     "order": 2,
-                    "markdownDescription": "File extension command mappings. Click [Manage File Extensions](command:scripts-runner.configureFileExtensions) to open the configuration UI."
+                    "markdownDescription": "File extension command mappings. Click [Manage File Extensions](command:scripts-runner.configureFileExtensions) to open the configuration UI.",
+                    "scope": "resource"
                 },
                 "scriptsRunner.viewType": {
                     "type": "string",
@@ -225,7 +227,8 @@
                         "card"
                     ],
                     "default": "card",
-                    "description": "Layout type for scripts view"
+                    "description": "Layout type for scripts view",
+                    "scope": "resource"
                 }
             }
         },

@@ -172,11 +172,9 @@ export class ScriptsSourceService {
             return;
         }
 
-        // Get current configuration
         const config = vscode.workspace.getConfiguration('scriptsRunner');
         const sources = config.get<ScriptsSourceConfig[]>('sources', []);
 
-        // Find and update built-in source if it exists
         const builtInIndex = sources.findIndex(s => s.builtIn);
         if (builtInIndex >= 0) {
             if (sources[builtInIndex].type === 'local') {
@@ -192,7 +190,7 @@ export class ScriptsSourceService {
             } as LocalPathConfig);
         }
 
-        await config.update('sources', sources, true);
+        await config.update('sources', sources, false);
     }
 
     private async addWorkspaceSource(workspacePath: string): Promise<void> {
@@ -216,7 +214,7 @@ export class ScriptsSourceService {
                 enabled: true
             });
 
-            await config.update('sources', sources, true);
+            await config.update('sources', sources, false);
         }
     }
 
@@ -231,7 +229,7 @@ export class ScriptsSourceService {
         );
 
         if (sources.length !== updatedSources.length) {
-            await config.update('sources', updatedSources, true);
+            await config.update('sources', updatedSources, false);
         }
     }
 

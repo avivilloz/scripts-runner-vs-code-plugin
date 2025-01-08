@@ -11,8 +11,26 @@ import { workspace } from 'vscode';
 export async function activate(context: vscode.ExtensionContext) {
     console.log('Scripts Runner extension is being activated');
 
-    // Get initial view type from configuration
+    // Initialize workspace-specific settings if they don't exist
     const config = vscode.workspace.getConfiguration('scriptsRunner');
+    
+    // Only initialize if workspace settings don't exist
+    if (!config.inspect('sources')?.workspaceValue) {
+        await config.update('sources', [], false);
+    }
+    if (!config.inspect('fileExtensions')?.workspaceValue) {
+        const builtInCommands = [
+            { extension: '.sh', system: 'linux', command: 'bash', builtIn: true },
+            { extension: '.sh', system: 'darwin', command: 'bash', builtIn: true },
+            { extension: '.ps1', system: 'windows', command: 'powershell -File', builtIn: true },
+        ];
+        await config.update('fileExtensions', builtInCommands, false);
+    }
+    if (!config.inspect('viewType')?.workspaceValue) {
+        await config.update('viewType', 'card', false);
+    }
+
+    // Get initial view type from configuration
     const initialViewType = config.get<string>('viewType', 'card');
 
     // Set initial view type context
