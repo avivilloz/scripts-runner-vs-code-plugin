@@ -248,9 +248,10 @@
         "vscode:prepublish": "npm run compile",
         "compile": "tsc -p ./ && ts-node scripts/copy-codicons.ts",
         "watch": "tsc -watch -p ./",
-        "test": "node ./out/test/runTest.js",
         "pretest": "npm run compile",
-        "package": "vsce package --allow-missing-repository"
+        "test": "node ./out/test/runTest.js",
+        "package": "vsce package --allow-missing-repository",
+        "clean": "rm -rf out/ dist/ node_modules/ package-lock.json"
     },
     "dependencies": {
         "@vscode/codicons": "^0.0.36",

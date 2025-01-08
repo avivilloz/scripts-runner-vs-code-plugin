@@ -4,28 +4,42 @@ import * as fs from 'fs';
 import * as vscode from 'vscode';
 
 export function getUserScriptsPath(): string {
+    if (vscode.env.remoteName) {
+        // For remote environments (WSL/SSH), use workspace storage
+        return path.join(os.homedir(), '.local', 'share', 'scripts-runner', 'scripts');
+    }
     return path.join(os.homedir(), '.scripts-runner', 'scripts');
 }
 
 export function getUserSourcesPath(): string {
     if (vscode.env.remoteName) {
-        // For remote environments (WSL/SSH)
-        return path.join('/', '.scripts-runner', 'sources');
+        // For remote environments (WSL/SSH), use workspace storage
+        return path.join(os.homedir(), '.local', 'share', 'scripts-runner', 'sources');
     }
     return path.join(os.homedir(), '.scripts-runner', 'sources');
 }
 
 export async function ensureUserScriptsDirectory(): Promise<void> {
     const scriptsPath = getUserScriptsPath();
-    if (!fs.existsSync(scriptsPath)) {
-        await fs.promises.mkdir(scriptsPath, { recursive: true });
+    try {
+        if (!fs.existsSync(scriptsPath)) {
+            await fs.promises.mkdir(scriptsPath, { recursive: true, mode: 0o755 });
+        }
+    } catch (error: any) {
+        console.error('Failed to create scripts directory:', error);
+        throw new Error(`Failed to create scripts directory: ${error.message}`);
     }
 }
 
 export async function ensureUserSourcesDirectory(): Promise<void> {
     const sourcesPath = getUserSourcesPath();
-    if (!fs.existsSync(sourcesPath)) {
-        await fs.promises.mkdir(sourcesPath, { recursive: true });
+    try {
+        if (!fs.existsSync(sourcesPath)) {
+            await fs.promises.mkdir(sourcesPath, { recursive: true, mode: 0o755 });
+        }
+    } catch (error: any) {
+        console.error('Failed to create sources directory:', error);
+        throw new Error(`Failed to create sources directory: ${error.message}`);
     }
 }
 
