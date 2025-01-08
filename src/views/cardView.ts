@@ -50,6 +50,9 @@ export class CardView {
             ]
         };
 
+        const codiconFontPath = vscode.Uri.joinPath(this.context.extensionUri, 'node_modules', '@vscode/codicons', 'dist', 'codicon.ttf');
+        const fontUri = this.webviewView.webview.asWebviewUri(codiconFontPath);
+
         // Add specific codicon classes for the icons we're using
         const codiconCss = `
             .codicon-source-control:before { content: "\\ea68"; }
@@ -60,6 +63,24 @@ export class CardView {
 
         // Add favorite button styles
         const styles = `
+            @font-face {
+                font-family: "codicon";
+                src: url("${fontUri}") format("truetype");
+                font-weight: normal;
+                font-style: normal;
+            }
+            .codicon {
+                font: normal normal normal 16px/1 codicon;
+                display: inline-block;
+                text-decoration: none;
+                text-rendering: auto;
+                text-align: center;
+                -webkit-font-smoothing: antialiased;
+                -moz-osx-font-smoothing: grayscale;
+                user-select: none;
+                -webkit-user-select: none;
+                -ms-user-select: none;
+            }
             .pin-btn {
                 position: absolute;
                 bottom: 12px;
@@ -108,22 +129,7 @@ export class CardView {
             <head>
                 <meta charset="UTF-8">
                 <style>
-                    @font-face {
-                        font-family: "codicon";
-                        src: url("${this.webviewView.webview.asWebviewUri(vscode.Uri.joinPath(this.context.extensionUri, 'node_modules', '@vscode/codicons', 'dist', 'codicon.ttf'))}") format("truetype");
-                    }
-                    .codicon {
-                        font: normal normal normal 16px/1 codicon;
-                        display: inline-block;
-                        text-decoration: none;
-                        text-rendering: auto;
-                        text-align: center;
-                        -webkit-font-smoothing: antialiased;
-                        -moz-osx-font-smoothing: grayscale;
-                        user-select: none;
-                        -webkit-user-select: none;
-                        -ms-user-select: none;
-                    }
+                    ${styles}
                     ${codiconCss}
                     body {
                         padding: 20px;
@@ -211,7 +217,6 @@ export class CardView {
                         padding: 2px 8px;
                         border-radius: 4px;
                     }
-                    ${styles}
                 </style>
             </head>
             <body>

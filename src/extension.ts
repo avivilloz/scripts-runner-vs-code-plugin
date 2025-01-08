@@ -10,12 +10,47 @@ import * as os from 'os';
 export async function activate(context: vscode.ExtensionContext) {
     console.log('Scripts Runner extension is being activated');
 
-    // Set initial view type context
-    await vscode.commands.executeCommand('setContext', 'scriptsRunner:viewType', 'list');
+    // Get initial view type from configuration
+    const config = vscode.workspace.getConfiguration('scriptsRunner');
+    const initialViewType = config.get<string>('viewType', 'card');
 
-    const scriptsSourceService = new ScriptsSourceService(context);  // Updated variable name
+    // Set initial view type context
+    await vscode.commands.executeCommand('setContext', 'scriptsRunner:viewType', initialViewType);
+
+    // Add configuration change listener
+    context.subscriptions.push(
+        vscode.workspace.onDidChangeConfiguration(async e => {
+            if (e.affectsConfiguration('scriptsRunner.viewType')) {
+                // Get fresh configuration
+                const newConfig = vscode.workspace.getConfiguration('scriptsRunner');
+                const newViewType = newConfig.get<string>('viewType', 'card');
+                await vscode.commands.executeCommand('setContext', 'scriptsRunner:viewType', newViewType);
+                // Refresh the view to apply changes
+                await scriptsProvider.refresh();
+            }
+        })
+    );
+
+    const scriptsSourceService = new ScriptsSourceService(context);
     const scriptService = new ScriptService(context);
-    const scriptsProvider = new ScriptsProvider(scriptsSourceService, scriptService, context);  // Updated parameter
+    const scriptsProvider = new ScriptsProvider(scriptsSourceService, scriptService, context);
+
+    // Initialize built-in sources
+    await scriptsSourceService.initializeBuiltInSources();
+
+    // Initialize built-in file extension commands if none exist
+    const existingCommands = config.get<any[]>('fileExtensions', []);
+
+    if (existingCommands.length === 0) {
+        const builtInCommands = [
+            { extension: '.sh', system: 'linux', command: 'bash', builtIn: true },
+            { extension: '.sh', system: 'darwin', command: 'bash', builtIn: true },
+            { extension: '.ps1', system: 'windows', command: 'powershell -File', builtIn: true },
+        ];
+
+        await config.update('fileExtensions', builtInCommands, true);
+    }
+
     const sourceConfigProvider = new SourceConfigProvider(
         context,
         async () => {
@@ -30,23 +65,6 @@ export async function activate(context: vscode.ExtensionContext) {
             await scriptsProvider.refresh();
         }
     );
-
-    // Initialize built-in sources
-    await scriptsSourceService.initializeBuiltInSources();
-
-    // Initialize built-in file extension commands if none exist
-    const config = vscode.workspace.getConfiguration('scriptsRunner');
-    const existingCommands = config.get<any[]>('fileExtensions', []);
-
-    if (existingCommands.length === 0) {
-        const builtInCommands = [
-            { extension: '.sh', system: 'linux', command: 'bash', builtIn: true },
-            { extension: '.sh', system: 'darwin', command: 'bash', builtIn: true },
-            { extension: '.ps1', system: 'windows', command: 'powershell -File', builtIn: true },
-        ];
-
-        await config.update('fileExtensions', builtInCommands, true);
-    }
 
     // Register both providers
     console.log('Registering providers');
@@ -203,17 +221,12 @@ export async function activate(context: vscode.ExtensionContext) {
 
     let layoutCommand = vscode.commands.registerCommand('scripts-runner.switchLayout', async () => {
         const config = vscode.workspace.getConfiguration('scriptsRunner');
-        const currentView = config.get<string>('viewType', 'list');
+        const currentView = config.get<string>('viewType', 'card');
         const newView = currentView === 'list' ? 'card' : 'list';
         
-        // Update configuration first
+        // Update configuration
         await config.update('viewType', newView, true);
-        // Then set context
-        await vscode.commands.executeCommand('setContext', 'scriptsRunner:viewType', newView);
-        // Add a small delay before refreshing
-        await new Promise(resolve => setTimeout(resolve, 100));
-        // Finally refresh the view
-        await scriptsProvider.refresh();
+        // Context will be updated by the configuration change listener
     });
 
     // Add new command registration

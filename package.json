@@ -3,7 +3,7 @@
     "name": "scripts-runner",
     "displayName": "Scripts Runner",
     "description": "Execute scripts from git repositories with parameters",
-    "version": "0.0.20",
+    "version": "0.0.21",
     "icon": "icon.png",
     "repository": {
         "type": "git",
@@ -224,7 +224,7 @@
                         "list",
                         "card"
                     ],
-                    "default": "list",
+                    "default": "card",
                     "description": "Layout type for scripts view"
                 }
             }
@@ -239,7 +239,7 @@
     },
     "scripts": {
         "vscode:prepublish": "npm run compile",
-        "compile": "tsc -p ./",
+        "compile": "tsc -p ./ && node scripts/copy-codicons.js",
         "watch": "tsc -watch -p ./",
         "test": "node ./out/test/runTest.js",
         "pretest": "npm run compile",
@@ -254,7 +254,8 @@
         "@kwsites/file-exists",
         "@kwsites/promise-deferred",
         "debug",
-        "ms"
+        "ms",
+        "@vscode/codicons"
     ],
     "devDependencies": {
         "@types/glob": "^8.0.0",
