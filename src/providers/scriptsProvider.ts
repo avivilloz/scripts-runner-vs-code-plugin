@@ -4,6 +4,7 @@ import { ScriptsSourceService } from '../services/scriptsSourceService'; // Upda
 import { ScriptService } from '../services/scriptService';
 import { Script } from '../models/script';
 import { CardView } from '../views/cardView';
+import { getGlobalConfiguration, updateGlobalConfiguration } from '../utils/configUtils';
 
 export class ScriptsProvider implements vscode.TreeDataProvider<Script>, vscode.WebviewViewProvider {
     private _onDidChangeTreeData: vscode.EventEmitter<Script | undefined | null | void> = new vscode.EventEmitter<Script | undefined | null | void>();
@@ -253,5 +254,9 @@ export class ScriptsProvider implements vscode.TreeDataProvider<Script>, vscode.
             (a.metadata.category || '').localeCompare(b.metadata.category || '') ||
             a.metadata.name.localeCompare(b.metadata.name)
         );
+    }
+
+    private async loadConfiguration() {
+        const viewType = getGlobalConfiguration('viewType', 'card');
     }
 }

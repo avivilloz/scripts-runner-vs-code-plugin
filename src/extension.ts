@@ -10,6 +10,14 @@ import { workspace } from 'vscode';
 import { getEnvironmentPath } from './utils/pathUtils';  // We'll add this function
 import { ConfigurationTarget } from 'vscode';
 
+interface SettingsQuickPickItem extends vscode.QuickPickItem {
+    action: () => void;
+}
+
+interface FilterItem extends vscode.QuickPickItem {
+    type?: 'tag' | 'category' | 'source';
+}
+
 export async function activate(context: vscode.ExtensionContext) {
     console.log('Scripts Runner extension is being activated');
 
@@ -59,17 +67,8 @@ export async function activate(context: vscode.ExtensionContext) {
     context.subscriptions.push(
         vscode.workspace.onDidChangeConfiguration(async e => {
             if (e.affectsConfiguration('scriptsRunner.viewType')) {
-                const newConfig = vscode.workspace.getConfiguration('scriptsRunner');
-                const newViewType = newConfig.get<string>('viewType', 'card');
-                
-                // Ensure the setting is in global config, not workspace
-                const currentSettings = newConfig.inspect('viewType');
-                if (currentSettings?.workspaceValue !== undefined) {
-                    // If there's a workspace setting, clear it and set global instead
-                    await newConfig.update('viewType', undefined, ConfigurationTarget.Workspace);
-                    await newConfig.update('viewType', newViewType, ConfigurationTarget.Global);
-                }
-                
+                // Get view type directly from global settings
+                const newViewType = config.inspect('viewType')?.globalValue as string || 'card';
                 await vscode.commands.executeCommand('setContext', 'scriptsRunner:viewType', newViewType);
                 await scriptsProvider.refresh();
             }
@@ -186,7 +185,7 @@ export async function activate(context: vscode.ExtensionContext) {
             ...allTags
         ];
 
-        const selected = await vscode.window.showQuickPick(items, {
+        const selected = await vscode.window.showQuickPick(items as FilterItem[], {
             canPickMany: true,
             placeHolder: 'Select sources, categories and tags to filter by',
             title: 'Filter Scripts'
@@ -194,16 +193,16 @@ export async function activate(context: vscode.ExtensionContext) {
 
         if (selected) {
             const selectedCategories = selected
-                .filter(item => 'type' in item && item.type === 'category')
-                .map(item => item.label);
+                ?.filter((item: FilterItem) => item.type === 'category')
+                .map((item: FilterItem) => item.label);
 
             const selectedTags = selected
-                .filter(item => 'type' in item && item.type === 'tag')
-                .map(item => item.label);
+                .filter((item: FilterItem) => item.type === 'tag')
+                .map((item: FilterItem) => item.label);
 
             const selectedSources = selected
-                .filter(item => 'type' in item && item.type === 'source')
-                .map(item => item.label);
+                .filter((item: FilterItem) => item.type === 'source')
+                .map((item: FilterItem) => item.label);
 
             scriptsProvider.setSelectedCategories(selectedCategories);
             scriptsProvider.setSelectedTags(selectedTags);
@@ -223,7 +222,7 @@ export async function activate(context: vscode.ExtensionContext) {
 
     // Replace separate configuration commands with a single settings command
     let settingsCommand = vscode.commands.registerCommand('scripts-runner.settings', async () => {
-        const items = [
+        const items: SettingsQuickPickItem[] = [
             {
                 label: "Manage Sources",
                 description: "Configure script sources",
@@ -248,11 +247,11 @@ export async function activate(context: vscode.ExtensionContext) {
 
     let layoutCommand = vscode.commands.registerCommand('scripts-runner.switchLayout', async () => {
         const config = vscode.workspace.getConfiguration('scriptsRunner');
-        const currentView = config.get<string>('viewType', 'card');
+        const currentView = config.inspect('viewType')?.globalValue as string || 'card';
         const newView = currentView === 'list' ? 'card' : 'list';
         
-        // Change from true to false
-        await config.update('viewType', newView, false);
+        // Use updateGlobalConfiguration instead
+        await updateGlobalConfiguration('viewType', newView);
     });
 
     // Add new command registration
