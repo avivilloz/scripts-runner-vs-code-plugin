@@ -3,6 +3,7 @@ import * as path from 'path';
 import simpleGit, { SimpleGit } from 'simple-git';
 import * as fs from 'fs';
 import { getUserSourcesPath, ensureUserSourcesDirectory, getEnvironmentPath } from '../utils/pathUtils';
+import { getGlobalConfiguration, updateGlobalConfiguration } from '../utils/configUtils';
 
 interface BaseConfig {
     type: 'git' | 'local';
@@ -173,12 +174,12 @@ export class ScriptsSourceService {
         }
 
         const config = vscode.workspace.getConfiguration('scriptsRunner');
-        const sources = config.get<ScriptsSourceConfig[]>('sources', []);
+        const sources = getGlobalConfiguration<ScriptsSourceConfig[]>('sources', []);
 
         const builtInIndex = sources.findIndex(s => s.builtIn);
         if (builtInIndex >= 0) {
             if (sources[builtInIndex].type === 'local') {
-                (sources[builtInIndex] as LocalPathConfig).path = builtInPath;
+                sources[builtInIndex].path = builtInPath;
             }
         } else {
             sources.push({
@@ -187,15 +188,14 @@ export class ScriptsSourceService {
                 path: builtInPath,
                 builtIn: true,
                 enabled: true
-            } as LocalPathConfig);
+            });
         }
 
-        await config.update('sources', sources, false);
+        await updateGlobalConfiguration('sources', sources);
     }
 
     private async addWorkspaceSource(workspacePath: string): Promise<void> {
-        const config = vscode.workspace.getConfiguration('scriptsRunner');
-        const sources = config.get<ScriptsSourceConfig[]>('sources', []);
+        const sources = getGlobalConfiguration<ScriptsSourceConfig[]>('sources', []);
 
         // Check if workspace source already exists
         const workspaceSourceExists = sources.some(
@@ -214,13 +214,12 @@ export class ScriptsSourceService {
                 enabled: true
             });
 
-            await config.update('sources', sources, false);
+            await updateGlobalConfiguration('sources', sources);
         }
     }
 
     private async removeWorkspaceSource(workspacePath: string): Promise<void> {
-        const config = vscode.workspace.getConfiguration('scriptsRunner');
-        const sources = config.get<ScriptsSourceConfig[]>('sources', []);
+        const sources = getGlobalConfiguration<ScriptsSourceConfig[]>('sources', []);
 
         const updatedSources = sources.filter(
             source => !(source.type === 'local' && 
@@ -229,7 +228,7 @@ export class ScriptsSourceService {
         );
 
         if (sources.length !== updatedSources.length) {
-            await config.update('sources', updatedSources, false);
+            await updateGlobalConfiguration('sources', updatedSources);
         }
     }
 

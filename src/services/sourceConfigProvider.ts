@@ -1,4 +1,6 @@
 import * as vscode from 'vscode';
+import { ConfigurationTarget } from 'vscode';
+import { getGlobalConfiguration, updateGlobalConfiguration } from '../utils/configUtils';
 
 export class SourceConfigProvider {
     public static readonly viewType = 'scriptsRunner.configureSource';
@@ -94,7 +96,7 @@ export class SourceConfigProvider {
         const updatedSources = sources.map(source =>
             source.name === name ? { ...source, enabled } : source
         );
-        await config.update('sources', updatedSources, false);
+        await config.update('sources', updatedSources, ConfigurationTarget.Global);
         this.panel?.webview.postMessage({
             command: 'updateSources',
             sources: updatedSources
@@ -407,7 +409,7 @@ export class SourceConfigProvider {
         const config = vscode.workspace.getConfiguration('scriptsRunner');
         const sources = config.get<any[]>('sources', []);
         const updatedSources = sources.filter(source => source.name !== name);
-        await config.update('sources', updatedSources, false);
+        await config.update('sources', updatedSources, ConfigurationTarget.Global);
         this.panel?.webview.postMessage({
             command: 'updateSources',
             sources: updatedSources
@@ -416,7 +418,6 @@ export class SourceConfigProvider {
     }
 
     private async updateConfig(sources: any[]): Promise<void> {
-        const config = vscode.workspace.getConfiguration('scriptsRunner');
-        await config.update('sources', sources, vscode.ConfigurationTarget.Workspace);
+        await updateGlobalConfiguration('sources', sources);
     }
 }

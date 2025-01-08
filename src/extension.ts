@@ -8,51 +8,69 @@ import * as path from 'path';
 import * as os from 'os';
 import { workspace } from 'vscode';
 import { getEnvironmentPath } from './utils/pathUtils';  // We'll add this function
+import { ConfigurationTarget } from 'vscode';
 
 export async function activate(context: vscode.ExtensionContext) {
     console.log('Scripts Runner extension is being activated');
 
+    // Only clean up workspace settings if they exist
+    const config = vscode.workspace.getConfiguration('scriptsRunner');
+    const inspection = config.inspect('sources');
+    
+    if (inspection?.workspaceValue !== undefined) {
+        await config.update('sources', undefined, ConfigurationTarget.Workspace);
+    }
+    if (config.inspect('fileExtensions')?.workspaceValue !== undefined) {
+        await config.update('fileExtensions', undefined, ConfigurationTarget.Workspace);
+    }
+    if (config.inspect('viewType')?.workspaceValue !== undefined) {
+        await config.update('viewType', undefined, ConfigurationTarget.Workspace);
+    }
+
     // Get environment-specific paths
     const environmentPath = getEnvironmentPath(context.extensionUri);
     
-    // Initialize environment-specific settings with clean state
-    const config = vscode.workspace.getConfiguration('scriptsRunner');
-    
-    // Reset all settings if they don't exist in current environment
-    if (!config.inspect('sources')?.workspaceValue) {
-        // Start with empty sources
-        await config.update('sources', [], vscode.ConfigurationTarget.Workspace);
+    // Initialize all settings in Global if they don't exist
+    if (!config.inspect('sources')?.globalValue) {
+        await config.update('sources', [], ConfigurationTarget.Global);
     }
 
-    if (!config.inspect('fileExtensions')?.workspaceValue) {
-        // Set default file extensions for current platform
+    if (!config.inspect('fileExtensions')?.globalValue) {
         const builtInCommands = [
             { extension: '.sh', system: 'linux', command: 'bash', builtIn: true },
             { extension: '.sh', system: 'darwin', command: 'bash', builtIn: true },
             { extension: '.ps1', system: 'windows', command: 'powershell -File', builtIn: true },
         ];
-        await config.update('fileExtensions', builtInCommands, vscode.ConfigurationTarget.Workspace);
+        await config.update('fileExtensions', builtInCommands, ConfigurationTarget.Global);
     }
 
-    if (!config.inspect('viewType')?.workspaceValue) {
-        await config.update('viewType', 'card', vscode.ConfigurationTarget.Workspace);
+    if (!config.inspect('viewType')?.globalValue) {
+        await config.update('viewType', 'card', ConfigurationTarget.Global);
     }
 
-    // Get initial view type from configuration
-    const initialViewType = config.get<string>('viewType', 'card');
-
-    // Set initial view type context
+    // Get initial view type from global configuration only
+    const initialViewType = config.inspect('viewType')?.globalValue || 'card';
     await vscode.commands.executeCommand('setContext', 'scriptsRunner:viewType', initialViewType);
+
+    // Use the helper for all configuration operations
+    const { getGlobalConfiguration, updateGlobalConfiguration } = require('./utils/configUtils');
 
     // Add configuration change listener
     context.subscriptions.push(
         vscode.workspace.onDidChangeConfiguration(async e => {
             if (e.affectsConfiguration('scriptsRunner.viewType')) {
-                // Get fresh configuration
                 const newConfig = vscode.workspace.getConfiguration('scriptsRunner');
                 const newViewType = newConfig.get<string>('viewType', 'card');
+                
+                // Ensure the setting is in global config, not workspace
+                const currentSettings = newConfig.inspect('viewType');
+                if (currentSettings?.workspaceValue !== undefined) {
+                    // If there's a workspace setting, clear it and set global instead
+                    await newConfig.update('viewType', undefined, ConfigurationTarget.Workspace);
+                    await newConfig.update('viewType', newViewType, ConfigurationTarget.Global);
+                }
+                
                 await vscode.commands.executeCommand('setContext', 'scriptsRunner:viewType', newViewType);
-                // Refresh the view to apply changes
                 await scriptsProvider.refresh();
             }
         })
@@ -64,19 +82,6 @@ export async function activate(context: vscode.ExtensionContext) {
 
     // Initialize built-in sources for this environment
     await scriptsSourceService.initializeBuiltInSources();
-
-    // Initialize built-in file extension commands if none exist
-    const existingCommands = config.get<any[]>('fileExtensions', []);
-
-    if (existingCommands.length === 0) {
-        const builtInCommands = [
-            { extension: '.sh', system: 'linux', command: 'bash', builtIn: true },
-            { extension: '.sh', system: 'darwin', command: 'bash', builtIn: true },
-            { extension: '.ps1', system: 'windows', command: 'powershell -File', builtIn: true },
-        ];
-
-        await config.update('fileExtensions', builtInCommands, false);
-    }
 
     const sourceConfigProvider = new SourceConfigProvider(
         context,
@@ -228,11 +233,6 @@ export async function activate(context: vscode.ExtensionContext) {
                 label: "Manage File Extensions",
                 description: "Configure file extension commands",
                 action: () => fileExtensionConfigProvider.show()
-            },
-            {
-                label: "Open Settings",
-                description: "Edit configuration in Settings UI",
-                action: () => vscode.commands.executeCommand('workbench.action.openWorkspaceSettings', 'scriptsRunner')
             }
         ];
 

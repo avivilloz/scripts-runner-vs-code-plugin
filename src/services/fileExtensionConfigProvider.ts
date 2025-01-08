@@ -1,4 +1,5 @@
 import * as vscode from 'vscode';
+import { ConfigurationTarget } from 'vscode';
 
 export interface FileExtensionConfig {
     extension: string;
@@ -341,6 +342,6 @@ export class FileExtensionConfigProvider {
 
     private async updateConfig(extensions: FileExtensionConfig[]): Promise<void> {
         const config = vscode.workspace.getConfiguration('scriptsRunner');
-        await config.update('fileExtensions', extensions, vscode.ConfigurationTarget.Workspace);
+        await config.update('fileExtensions', extensions, ConfigurationTarget.Global);
     }
 }
