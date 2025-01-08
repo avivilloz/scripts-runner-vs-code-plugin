@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
 import { Script } from '../models/script';
+import * as fs from 'fs';
 
 export class CardView {
     private webviewView: vscode.WebviewView | undefined;
@@ -46,11 +47,45 @@ export class CardView {
         this.webviewView.webview.options = {
             enableScripts: true,
             localResourceRoots: [
-                vscode.Uri.joinPath(this.context.extensionUri, 'node_modules', '@vscode/codicons')
+                vscode.Uri.joinPath(this.context.extensionUri, 'node_modules', '@vscode/codicons'),
+                vscode.Uri.joinPath(this.context.extensionUri, 'out', 'node_modules', '@vscode/codicons'),
+                vscode.Uri.joinPath(this.context.extensionUri, 'dist', 'node_modules', '@vscode/codicons')
             ]
         };
 
-        const codiconFontPath = vscode.Uri.joinPath(this.context.extensionUri, 'node_modules', '@vscode/codicons', 'dist', 'codicon.ttf');
+        // Try multiple possible paths for the codicon font
+        let codiconFontPath = vscode.Uri.joinPath(
+            this.context.extensionUri,
+            'node_modules',
+            '@vscode/codicons',
+            'dist',
+            'codicon.ttf'
+        );
+
+        // If the direct path doesn't exist, try the out directory
+        if (!fs.existsSync(codiconFontPath.fsPath)) {
+            codiconFontPath = vscode.Uri.joinPath(
+                this.context.extensionUri,
+                'out',
+                'node_modules',
+                '@vscode/codicons',
+                'dist',
+                'codicon.ttf'
+            );
+        }
+
+        // If that doesn't exist, try the dist directory
+        if (!fs.existsSync(codiconFontPath.fsPath)) {
+            codiconFontPath = vscode.Uri.joinPath(
+                this.context.extensionUri,
+                'dist',
+                'node_modules',
+                '@vscode/codicons',
+                'dist',
+                'codicon.ttf'
+            );
+        }
+
         const fontUri = this.webviewView.webview.asWebviewUri(codiconFontPath);
 
         // Add specific codicon classes for the icons we're using
