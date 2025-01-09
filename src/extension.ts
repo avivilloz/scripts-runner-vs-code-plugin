@@ -23,7 +23,12 @@ export async function activate(context: vscode.ExtensionContext) {
 
     const config = vscode.workspace.getConfiguration('scriptsRunner');
     
-    // Clean up any workspace settings if they exist
+    // First, clear any existing settings that might have been copied from User settings
+    await config.update('sources', undefined, ConfigurationTarget.Global);
+    await config.update('fileExtensions', undefined, ConfigurationTarget.Global);
+    await config.update('viewType', undefined, ConfigurationTarget.Global);
+    
+    // Also clean workspace settings if they exist
     if (config.inspect('sources')?.workspaceValue !== undefined) {
         await config.update('sources', undefined, ConfigurationTarget.Workspace);
     }
@@ -34,35 +39,27 @@ export async function activate(context: vscode.ExtensionContext) {
         await config.update('viewType', undefined, ConfigurationTarget.Workspace);
     }
 
-    // Initialize Global settings with defaults only if they don't exist
-    // Don't copy from User settings
-    const globalSources = config.inspect('sources')?.globalValue;
-    if (globalSources === undefined) {
-        // Start with empty sources - built-in will be added later
-        await config.update('sources', [], ConfigurationTarget.Global);
-    }
-
-    const globalFileExtensions = config.inspect('fileExtensions')?.globalValue;
-    if (globalFileExtensions === undefined) {
-        const builtInCommands = [
-            { extension: '.sh', system: 'linux', command: 'bash', builtIn: true },
-            { extension: '.sh', system: 'darwin', command: 'bash', builtIn: true },
-            { extension: '.ps1', system: 'windows', command: 'powershell -File', builtIn: true },
-        ];
-        await config.update('fileExtensions', builtInCommands, ConfigurationTarget.Global);
-    }
-
-    const globalViewType = config.inspect('viewType')?.globalValue;
-    if (globalViewType === undefined) {
-        await config.update('viewType', 'card', ConfigurationTarget.Global);
-    }
+    // Now initialize with defaults
+    await config.update('sources', [], ConfigurationTarget.Global);
+    
+    const builtInCommands = [
+        { extension: '.sh', system: 'linux', command: 'bash', builtIn: true },
+        { extension: '.sh', system: 'darwin', command: 'bash', builtIn: true },
+        { extension: '.ps1', system: 'windows', command: 'powershell -File', builtIn: true },
+    ];
+    await config.update('fileExtensions', builtInCommands, ConfigurationTarget.Global);
+    await config.update('viewType', 'card', ConfigurationTarget.Global);
 
     // Get environment-specific paths
     const environmentPath = getEnvironmentPath(context.extensionUri);
 
-    // Initialize built-in sources with correct environment path
+    // Initialize services after settings are clean
     const scriptsSourceService = new ScriptsSourceService(context);
-    await scriptsSourceService.initializeBuiltInSources();  // This will add built-in source with correct path
+    const scriptService = new ScriptService(context);
+    const scriptsProvider = new ScriptsProvider(scriptsSourceService, scriptService, context);
+
+    // Now add built-in source with correct environment path
+    await scriptsSourceService.initializeBuiltInSources();
 
     // Get initial view type from global configuration only
     const initialViewType = config.inspect('viewType')?.globalValue || 'card';
@@ -82,9 +79,6 @@ export async function activate(context: vscode.ExtensionContext) {
             }
         })
     );
-
-    const scriptService = new ScriptService(context);
-    const scriptsProvider = new ScriptsProvider(scriptsSourceService, scriptService, context);
 
     const sourceConfigProvider = new SourceConfigProvider(
         context,
