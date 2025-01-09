@@ -33,6 +33,8 @@ export class CardView {
                         this.scriptsProvider.togglePin(scriptToToggle);
                     }
                     break;
+                default:
+                    console.error(`Unknown command: ${message.command}`); // Add error logging for unknown commands
             }
         });
         

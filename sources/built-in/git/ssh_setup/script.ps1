@@ -26,12 +26,12 @@ $ConfigFile = Join-Path $SshDir "config"
 Write-Separator -title "Creating .ssh directory if it doesn't exist"
 
 New-Item -Path $SshDir -ItemType Directory -Force | Out-Null
-# Set directory permissions to equivalent of 700
-$acl = Get-Acl $SshDir
-$acl.SetAccessRuleProtection($true, $false)
-$rule = New-Object System.Security.AccessControl.FileSystemAccessRule($env:USERNAME, "FullControl", "Allow")
-$acl.AddAccessRule($rule)
-Set-Acl $SshDir $acl
+# Set directory permissions to equivalent of 700 (optional)
+# $acl = Get-Acl $SshDir
+# $acl.SetAccessRuleProtection($true, $false)
+# $rule = New-Object System.Security.AccessControl.FileSystemAccessRule($env:USERNAME, "FullControl", "Allow")
+# $acl.AddAccessRule($rule)
+# Set-Acl $SshDir $acl
 
 Write-Separator -title "Generating SSH Key"
 
@@ -42,12 +42,12 @@ try {
         exit 1
     }
 
-    # Set key file permissions to equivalent of 400
-    $acl = Get-Acl $IdentityFile
-    $acl.SetAccessRuleProtection($true, $false)
-    $rule = New-Object System.Security.AccessControl.FileSystemAccessRule($env:USERNAME, "Read", "Allow")
-    $acl.AddAccessRule($rule)
-    Set-Acl $IdentityFile $acl
+    # Set key file permissions to equivalent of 400 (optional)
+    # $acl = Get-Acl $IdentityFile
+    # $acl.SetAccessRuleProtection($true, $false)
+    # $rule = New-Object System.Security.AccessControl.FileSystemAccessRule($env:USERNAME, "Read", "Allow")
+    # $acl.AddAccessRule($rule)
+    # Set-Acl $IdentityFile $acl
 
     Write-Separator -title "Adding SSH configuration"
 
@@ -62,12 +62,12 @@ Host $GitHost
 
     Add-Content -Path $ConfigFile -Value $ConfigContent
     
-    # Set config file permissions to equivalent of 600
-    $acl = Get-Acl $ConfigFile
-    $acl.SetAccessRuleProtection($true, $false)
-    $rule = New-Object System.Security.AccessControl.FileSystemAccessRule($env:USERNAME, "Read,Write", "Allow")
-    $acl.AddAccessRule($rule)
-    Set-Acl $ConfigFile $acl
+    # Set config file permissions to equivalent of 600 (optional)
+    # $acl = Get-Acl $ConfigFile
+    # $acl.SetAccessRuleProtection($true, $false)
+    # $rule = New-Object System.Security.AccessControl.FileSystemAccessRule($env:USERNAME, "Read,Write", "Allow")
+    # $acl.AddAccessRule($rule)
+    # Set-Acl $ConfigFile $acl
 
 } catch {
     Write-Error "Error during SSH setup: $_"

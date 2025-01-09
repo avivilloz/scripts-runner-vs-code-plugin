@@ -57,7 +57,7 @@ try {
 
 Write-Separator -title "SSH key generated successfully"
 
-Write-Host "Copy and paste this public SSH key to your remote host $AuthorizedKeysFile:"
+Write-Host "Copy and paste this public SSH key to your remote host ${AuthorizedKeysFile}:"
 Write-Host ""
 Get-Content "${IdentityFile}.pub"
 Write-Host ""

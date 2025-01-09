@@ -52,7 +52,7 @@ try {
     # Get current branch name
     $currentBranch = git symbolic-ref --short HEAD
     # Check if branch has upstream
-    $hasUpstream = git rev-parse --abbrev-ref --symbolic-full-name @{u} 2>$null
+    $hasUpstream = git rev-parse --abbrev-ref --symbolic-full-name `@{u} 2>$null
     if ($LASTEXITCODE -eq 0) {
         git push
     } else {
