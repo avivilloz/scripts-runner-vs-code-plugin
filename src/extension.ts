@@ -23,12 +23,49 @@ export async function activate(context: vscode.ExtensionContext) {
 
     const config = vscode.workspace.getConfiguration('scriptsRunner');
     
-    // First, clear any existing settings that might have been copied from User settings
-    await config.update('sources', undefined, ConfigurationTarget.Global);
-    await config.update('fileExtensions', undefined, ConfigurationTarget.Global);
-    await config.update('viewType', undefined, ConfigurationTarget.Global);
+    // Log environment details
+    console.log('Environment details:', {
+        remoteName: vscode.env.remoteName,
+        remoteKind: vscode.env.remoteName || 'local',
+        uiKind: vscode.env.uiKind,
+        appHost: vscode.env.appHost,
+        appName: vscode.env.appName
+    });
+
+    // Create environment-specific initialization key
+    const envKey = vscode.env.remoteName 
+        ? `initialized-${vscode.env.remoteName}` 
+        : 'initialized-local';
     
-    // Also clean workspace settings if they exist
+    console.log('Using initialization key:', envKey);
+    
+    // Check if this environment has been initialized
+    const isInitialized = context.globalState.get(envKey);
+    
+    if (!isInitialized) {
+        console.log(`First installation detected for environment: ${envKey}`);
+        
+        // Clear any existing settings
+        await config.update('sources', undefined, ConfigurationTarget.Global);
+        await config.update('fileExtensions', undefined, ConfigurationTarget.Global);
+        await config.update('viewType', undefined, ConfigurationTarget.Global);
+        
+        // Initialize with defaults
+        await config.update('sources', [], ConfigurationTarget.Global);
+        
+        const builtInCommands = [
+            { extension: '.sh', system: 'linux', command: 'bash', builtIn: true },
+            { extension: '.sh', system: 'darwin', command: 'bash', builtIn: true },
+            { extension: '.ps1', system: 'windows', command: 'powershell -File', builtIn: true },
+        ];
+        await config.update('fileExtensions', builtInCommands, ConfigurationTarget.Global);
+        await config.update('viewType', 'card', ConfigurationTarget.Global);
+
+        // Mark this environment as initialized
+        await context.globalState.update(envKey, true);
+    }
+
+    // Always clean workspace settings if they exist
     if (config.inspect('sources')?.workspaceValue !== undefined) {
         await config.update('sources', undefined, ConfigurationTarget.Workspace);
     }
@@ -38,17 +75,6 @@ export async function activate(context: vscode.ExtensionContext) {
     if (config.inspect('viewType')?.workspaceValue !== undefined) {
         await config.update('viewType', undefined, ConfigurationTarget.Workspace);
     }
-
-    // Now initialize with defaults
-    await config.update('sources', [], ConfigurationTarget.Global);
-    
-    const builtInCommands = [
-        { extension: '.sh', system: 'linux', command: 'bash', builtIn: true },
-        { extension: '.sh', system: 'darwin', command: 'bash', builtIn: true },
-        { extension: '.ps1', system: 'windows', command: 'powershell -File', builtIn: true },
-    ];
-    await config.update('fileExtensions', builtInCommands, ConfigurationTarget.Global);
-    await config.update('viewType', 'card', ConfigurationTarget.Global);
 
     // Get environment-specific paths
     const environmentPath = getEnvironmentPath(context.extensionUri);
