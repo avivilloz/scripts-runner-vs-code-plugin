@@ -29,12 +29,6 @@ $AuthorizedKeysFile = Join-Path $SshDirTilde "authorized_keys"
 Write-Separator -title "Generating SSH Key"
 
 New-Item -Path $SshDir -ItemType Directory -Force | Out-Null
-# Set directory permissions (commented out)
-# $acl = Get-Acl $SshDir
-# $acl.SetAccessRuleProtection($true, $false)
-# $rule = New-Object System.Security.AccessControl.FileSystemAccessRule($env:USERNAME, "FullControl", "Allow")
-# $acl.AddAccessRule($rule)
-# Set-Acl $SshDir $acl
 
 try {
     ssh-keygen -t ed25519 -f $IdentityFile -N '""'
@@ -49,18 +43,11 @@ Host $Alias
     User $Username
     HostName $HostName
     PreferredAuthentications publickey
+    StrictHostKeyChecking accept-new
     IdentityFile $IdentityFileTilde
 "@
 
     Add-Content -Path (Join-Path $SshDir "config") -Value $ConfigContent
-    
-    # Set proper permissions on the config file (commented out)
-    # $acl = Get-Acl (Join-Path $SshDir "config")
-    # $acl.SetAccessRuleProtection($true, $false)
-    # $rule = New-Object System.Security.AccessControl.FileSystemAccessRule($env:USERNAME, "Read,Write", "Allow")
-    # $acl.AddAccessRule($rule)
-    # Set-Acl (Join-Path $SshDir "config") $acl
-
 } catch {
     Write-Error "Error during SSH setup: $_"
     exit 1
@@ -70,7 +57,7 @@ Host $Alias
 
 Write-Separator -title "SSH key generated successfully"
 
-Write-Host "Copy and paste this public SSH key to your remote host $AuthorizedKeysFile:"
+Write-Host "Copy and paste this public SSH key to your remote host ${AuthorizedKeysFile}:"
 Write-Host ""
 Get-Content "${IdentityFile}.pub"
 Write-Host ""

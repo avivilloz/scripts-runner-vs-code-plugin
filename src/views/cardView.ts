@@ -256,7 +256,11 @@ export class CardView {
                         padding: 2px 8px;
                         border-radius: 4px;
                     }
+                    .card > * {
+                        pointer-events: none;
+                    }
                     .pin-btn {
+                        pointer-events: all;
                         position: absolute;
                         bottom: 12px;
                         right: 12px;
@@ -276,8 +280,7 @@ export class CardView {
                 <div class="grid">
                     ${scripts.map(script => `
                         <div class="card" 
-                             data-script-path="${script.path}"
-                             onclick="handleCardClick(event, '${script.path}')">
+                             data-script-path="${script.path}">
                             <div class="card-title">
                                 ${script.metadata.name}${script.metadata.parameters?.length ? `<i class="codicon codicon-symbol-parameter param-indicator"></i>` : ''}
                             </div>
@@ -310,19 +313,6 @@ export class CardView {
                 <script>
                     const vscode = acquireVsCodeApi();
 
-                    function handleCardClick(event, scriptPath) {
-                        // Prevent if the click was on the pin button
-                        if (event.target.closest('.pin-btn')) {
-                            return;
-                        }
-                        
-                        console.log('Card clicked:', scriptPath);
-                        vscode.postMessage({
-                            command: 'executeScript',
-                            scriptPath: scriptPath
-                        });
-                    }
-
                     function handlePinClick(event) {
                         event.preventDefault();
                         event.stopPropagation();
@@ -337,11 +327,17 @@ export class CardView {
                         });
                     }
 
-                    // Prevent text selection on cards
+                    // Keep only the programmatic click handlers
                     document.querySelectorAll('.card').forEach(card => {
-                        card.addEventListener('mousedown', (e) => {
-                            if (e.detail > 1) { // Prevent double-click selection
-                                e.preventDefault();
+                        card.addEventListener('click', (event) => {
+                            // Only handle clicks if they're not on the pin button
+                            if (!event.target.closest('.pin-btn')) {
+                                const scriptPath = card.dataset.scriptPath;
+                                console.log('Card clicked:', scriptPath);
+                                vscode.postMessage({
+                                    command: 'executeScript',
+                                    scriptPath: scriptPath
+                                });
                             }
                         });
                     });

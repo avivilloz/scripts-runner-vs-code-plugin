@@ -42,13 +42,6 @@ try {
         exit 1
     }
 
-    # Set key file permissions to equivalent of 400 (optional)
-    # $acl = Get-Acl $IdentityFile
-    # $acl.SetAccessRuleProtection($true, $false)
-    # $rule = New-Object System.Security.AccessControl.FileSystemAccessRule($env:USERNAME, "Read", "Allow")
-    # $acl.AddAccessRule($rule)
-    # Set-Acl $IdentityFile $acl
-
     Write-Separator -title "Adding SSH configuration"
 
     $ConfigContent = @"
@@ -57,17 +50,11 @@ Host $GitHost
     User git
     HostName $GitHost
     PreferredAuthentications publickey
+    StrictHostKeyChecking accept-new
     IdentityFile $IdentityFileTilde
 "@
 
     Add-Content -Path $ConfigFile -Value $ConfigContent
-    
-    # Set config file permissions to equivalent of 600 (optional)
-    # $acl = Get-Acl $ConfigFile
-    # $acl.SetAccessRuleProtection($true, $false)
-    # $rule = New-Object System.Security.AccessControl.FileSystemAccessRule($env:USERNAME, "Read,Write", "Allow")
-    # $acl.AddAccessRule($rule)
-    # Set-Acl $ConfigFile $acl
 
 } catch {
     Write-Error "Error during SSH setup: $_"

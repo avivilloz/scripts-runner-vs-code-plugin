@@ -54,6 +54,7 @@ Host $HOSTNAME
     User git
     HostName $HOSTNAME
     PreferredAuthentications publickey
+    StrictHostKeyChecking accept-new
     IdentityFile $IDENTITY_FILE_TILDE" >>$SSH_CONFIG_FILE
 
 chmod 600 $SSH_CONFIG_FILE
