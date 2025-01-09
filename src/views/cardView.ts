@@ -189,6 +189,8 @@ export class CardView {
                         display: flex;
                         flex-direction: column;
                         min-height: 160px;
+                        user-select: none;
+                        -webkit-user-select: none;
                     }
                     .card:hover {
                         transform: translateY(-2px);
@@ -254,14 +256,28 @@ export class CardView {
                         padding: 2px 8px;
                         border-radius: 4px;
                     }
+                    .pin-btn {
+                        position: absolute;
+                        bottom: 12px;
+                        right: 12px;
+                        background: none;
+                        border: none;
+                        padding: 4px;
+                        cursor: pointer;
+                        color: var(--vscode-descriptionForeground);
+                        opacity: 0.6;
+                        z-index: 10;
+                        user-select: none;
+                        -webkit-user-select: none;
+                    }
                 </style>
             </head>
             <body>
                 <div class="grid">
                     ${scripts.map(script => `
                         <div class="card" 
-                             onclick="executeScript('${script.path}')"
-                             data-tooltip="${this.getTooltipContent(script)}">
+                             data-script-path="${script.path}"
+                             onclick="handleCardClick(event, '${script.path}')">
                             <div class="card-title">
                                 ${script.metadata.name}${script.metadata.parameters?.length ? `<i class="codicon codicon-symbol-parameter param-indicator"></i>` : ''}
                             </div>
@@ -283,7 +299,8 @@ export class CardView {
                                 </div>
                             ` : ''}
                             <button class="pin-btn ${this.scriptsProvider.isPinned(script) ? 'active' : ''}" 
-                                    onclick="event.preventDefault(); event.stopPropagation(); togglePin('${script.path}', event)">
+                                    data-script-path="${script.path}"
+                                    onclick="handlePinClick(event)">
                                 <i class="codicon ${this.scriptsProvider.isPinned(script) ? 'codicon-pinned-full' : 'codicon-pinned-empty'}"></i>
                             </button>
                         </div>
@@ -292,40 +309,42 @@ export class CardView {
                 <div id="tooltip" class="tooltip"></div>
                 <script>
                     const vscode = acquireVsCodeApi();
-                    // const tooltip = document.getElementById('tooltip');
-                    // let tooltipTimeout;
 
-                    function executeScript(path) {
+                    function handleCardClick(event, scriptPath) {
+                        // Prevent if the click was on the pin button
+                        if (event.target.closest('.pin-btn')) {
+                            return;
+                        }
+                        
+                        console.log('Card clicked:', scriptPath);
                         vscode.postMessage({
                             command: 'executeScript',
-                            scriptPath: path
+                            scriptPath: scriptPath
                         });
                     }
 
-                    function togglePin(scriptPath, event) {
+                    function handlePinClick(event) {
+                        event.preventDefault();
                         event.stopPropagation();
+                        
+                        const button = event.target.closest('.pin-btn');
+                        const scriptPath = button.dataset.scriptPath;
+                        
+                        console.log('Pin clicked:', scriptPath);
                         vscode.postMessage({
                             command: 'togglePin',
                             scriptPath: scriptPath
                         });
                     }
 
-                    // document.querySelectorAll('.card').forEach(card => {
-                    //     card.addEventListener('mouseover', (e) => {
-                    //         clearTimeout(tooltipTimeout);
-                    //         tooltipTimeout = setTimeout(() => {
-                    //             tooltip.innerHTML = card.dataset.tooltip;
-                    //             tooltip.style.display = 'block';
-                    //             tooltip.style.left = e.pageX + 10 + 'px';
-                    //             tooltip.style.top = e.pageY + 10 + 'px';
-                    //         }, 500);
-                    //     });
-
-                    //     card.addEventListener('mouseout', () => {
-                    //         clearTimeout(tooltipTimeout);
-                    //         tooltip.style.display = 'none';
-                    //     });
-                    // });
+                    // Prevent text selection on cards
+                    document.querySelectorAll('.card').forEach(card => {
+                        card.addEventListener('mousedown', (e) => {
+                            if (e.detail > 1) { // Prevent double-click selection
+                                e.preventDefault();
+                            }
+                        });
+                    });
                 </script>
             </body>
             </html>

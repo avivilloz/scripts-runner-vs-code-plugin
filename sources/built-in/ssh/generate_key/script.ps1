@@ -24,12 +24,12 @@ $AuthorizedKeysFile = Join-Path $SshDirTilde "authorized_keys"
 Write-Separator -title "Creating .ssh directory if it doesn't exist"
 
 New-Item -Path $SshDir -ItemType Directory -Force | Out-Null
-# Set restrictive permissions
-$acl = Get-Acl $SshDir
-$acl.SetAccessRuleProtection($true, $false)
-$rule = New-Object System.Security.AccessControl.FileSystemAccessRule($env:USERNAME, "FullControl", "Allow")
-$acl.AddAccessRule($rule)
-Set-Acl $SshDir $acl
+# Set restrictive permissions (commented out)
+# $acl = Get-Acl $SshDir
+# $acl.SetAccessRuleProtection($true, $false)
+# $rule = New-Object System.Security.AccessControl.FileSystemAccessRule($env:USERNAME, "FullControl", "Allow")
+# $acl.AddAccessRule($rule)
+# Set-Acl $SshDir $acl
 
 Write-Host "SSH directory created"
 
@@ -42,12 +42,12 @@ try {
         exit 1
     }
 
-    # Set proper permissions on the private key
-    $acl = Get-Acl $IdentityFile
-    $acl.SetAccessRuleProtection($true, $false)
-    $rule = New-Object System.Security.AccessControl.FileSystemAccessRule($env:USERNAME, "Read", "Allow")
-    $acl.AddAccessRule($rule)
-    Set-Acl $IdentityFile $acl
+    # Set proper permissions on the private key (commented out)
+    # $acl = Get-Acl $IdentityFile
+    # $acl.SetAccessRuleProtection($true, $false)
+    # $rule = New-Object System.Security.AccessControl.FileSystemAccessRule($env:USERNAME, "Read", "Allow")
+    # $acl.AddAccessRule($rule)
+    # Set-Acl $IdentityFile $acl
 } catch {
     Write-Error "Error during SSH setup: $_"
     exit 1
@@ -57,7 +57,7 @@ try {
 
 Write-Separator -title "SSH key generated successfully"
 
-Write-Host "Copy and paste this public SSH key to your remote host ${AuthorizedKeysFile}:"
+Write-Host "Copy and paste this public SSH key to your remote host $AuthorizedKeysFile:"
 Write-Host ""
 Get-Content "${IdentityFile}.pub"
 Write-Host ""
