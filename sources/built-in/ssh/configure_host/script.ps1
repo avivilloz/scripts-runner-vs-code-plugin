@@ -23,12 +23,16 @@ $SshDirTilde = "~/.ssh"
 $IdentityFile = Join-Path $SshDir $Alias
 $IdentityFileTilde = Join-Path $SshDirTilde $Alias
 $AuthorizedKeysFile = Join-Path $SshDirTilde "authorized_keys"
+$ConfigFile = Join-Path $SshDir "config"
 
 # ------------------------------- Main Script -------------------------------
 
-Write-Separator -title "Generating SSH Key"
+Write-Separator -title "Creating .ssh directory if it doesn't exist"
 
 New-Item -Path $SshDir -ItemType Directory -Force | Out-Null
+Write-Host "SSH directory created"
+
+Write-Separator -title "Generating SSH Key"
 
 try {
     ssh-keygen -t ed25519 -f $IdentityFile -N '""'
@@ -36,6 +40,8 @@ try {
         Write-Error "Failed to generate SSH key"
         exit 1
     }
+
+    Write-Separator -title "Adding SSH configuration"
 
     $ConfigContent = @"
 
@@ -47,7 +53,9 @@ Host $Alias
     IdentityFile $IdentityFileTilde
 "@
 
-    Add-Content -Path (Join-Path $SshDir "config") -Value $ConfigContent
+    Add-Content -Path $ConfigFile -Value $ConfigContent
+    Write-Host "Added SSH Configuration"
+
 } catch {
     Write-Error "Error during SSH setup: $_"
     exit 1

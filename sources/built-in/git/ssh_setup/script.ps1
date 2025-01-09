@@ -26,12 +26,7 @@ $ConfigFile = Join-Path $SshDir "config"
 Write-Separator -title "Creating .ssh directory if it doesn't exist"
 
 New-Item -Path $SshDir -ItemType Directory -Force | Out-Null
-# Set directory permissions to equivalent of 700 (optional)
-# $acl = Get-Acl $SshDir
-# $acl.SetAccessRuleProtection($true, $false)
-# $rule = New-Object System.Security.AccessControl.FileSystemAccessRule($env:USERNAME, "FullControl", "Allow")
-# $acl.AddAccessRule($rule)
-# Set-Acl $SshDir $acl
+Write-Host "SSH directory created"
 
 Write-Separator -title "Generating SSH Key"
 
@@ -55,6 +50,7 @@ Host $GitHost
 "@
 
     Add-Content -Path $ConfigFile -Value $ConfigContent
+    Write-Host "Added SSH Configuration"
 
 } catch {
     Write-Error "Error during SSH setup: $_"

@@ -28,7 +28,7 @@ export class InputFormProvider {
                 <h2>${scriptName}</h2>
                 <p class="description">${scriptDescription}</p>
                 <div class="script-path">
-                    <i class="codicon codicon-file"></i>
+                    <i class="codicon codicon-link"></i>
                     <a href="#" onclick="openScript('${scriptPath.replace(/\\/g, '\\\\')}'); return false;">
                         ${scriptPath}
                     </a>
@@ -51,7 +51,7 @@ export class InputFormProvider {
                 -moz-osx-font-smoothing: grayscale;
                 user-select: none;
             }
-            .codicon-file:before { content: "\\eb60"; }
+            .codicon-link:before { content: "\\EB15"; }
             .script-info {
                 margin-bottom: 24px;
                 padding-bottom: 16px;

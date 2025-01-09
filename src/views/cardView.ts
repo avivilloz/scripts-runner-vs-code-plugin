@@ -33,8 +33,12 @@ export class CardView {
                         this.scriptsProvider.togglePin(scriptToToggle);
                     }
                     break;
+                case 'openScript':
+                    vscode.workspace.openTextDocument(message.scriptPath)
+                        .then(doc => vscode.window.showTextDocument(doc));
+                    break;
                 default:
-                    console.error(`Unknown command: ${message.command}`); // Add error logging for unknown commands
+                    console.error(`Unknown command: ${message.command}`);
             }
         });
         
@@ -93,9 +97,9 @@ export class CardView {
         // Add specific codicon classes for the icons we're using
         const codiconCss = `
             .codicon-source-control:before { content: "\\ea68"; }
-            .codicon-symbol-parameter:before { content: "\\ea92"; }
-            .codicon-pinned-empty:before { content: "\\eb2b"; }
-            .codicon-pinned-full:before { content: "\\eba0"; }
+            .codicon-link:before { content: "\\eb15"; }
+            .codicon-pinned-empty:before { content: "\\eba0"; }
+            .codicon-pinned-full:before { content: "\\EBB2"; }
         `;
 
         // Add favorite button styles
@@ -131,7 +135,7 @@ export class CardView {
                 z-index: 10;
             }
             .pin-btn .codicon {
-                font-size: 24px !important;
+                font-size: 22px !important;
             }
             .pin-btn:hover {
                 opacity: 1;
@@ -140,23 +144,37 @@ export class CardView {
                 color: var(--vscode-textLink-activeForeground);
                 opacity: 1;
             }
-            .param-indicator {
-                display: inline-flex;
-                align-items: center;
-                margin-left: 8px;
-                font-size: 14px;
-                opacity: 0.7;
-            }
             .card-title {
                 display: flex;
                 align-items: center;
                 gap: 4px;
             }
-            .param-indicator {
-                font-size: 18px;
-                color: var(--vscode-descriptionForeground);
-                position: relative;
+            .link-btn {
+                background: none;
                 top: 2px;
+                border: none;
+                padding: 4px;
+                cursor: pointer;
+                color: var(--vscode-descriptionForeground);
+                opacity: 0.7;
+                margin-left: 4px;
+                border-radius: 4px;
+                transition: all 0.2s;
+                display: inline-flex;
+                align-items: center;
+                position: relative;
+                z-index: 2;
+                pointer-events: all;
+            }
+            .link-btn:hover {
+                opacity: 1;
+            }
+            .link-btn .codicon {
+                font-size: 18px;
+                pointer-events: none;
+            }
+            .card > * {
+                pointer-events: auto;
             }
         `;
 
@@ -282,7 +300,12 @@ export class CardView {
                         <div class="card" 
                              data-script-path="${script.path}">
                             <div class="card-title">
-                                ${script.metadata.name}${script.metadata.parameters?.length ? `<i class="codicon codicon-symbol-parameter param-indicator"></i>` : ''}
+                                ${script.metadata.name}
+                                <button class="link-btn" 
+                                        data-script-path="${script.path}"
+                                        onclick="handleLinkClick(event)">
+                                    <i class="codicon codicon-link"></i>
+                                </button>
                             </div>
                             ${script.metadata.category ? 
                                 `<div class="card-category">${script.metadata.category}</div>` : 
@@ -327,17 +350,45 @@ export class CardView {
                         });
                     }
 
-                    // Keep only the programmatic click handlers
+                    function handleLinkClick(event) {
+                        console.log('Link click handler called');
+                        console.log('Event target:', event.target);
+                        event.preventDefault();
+                        event.stopPropagation();
+                        
+                        const button = event.target.closest('.link-btn');
+                        console.log('Found button:', button);
+                        if (!button) {
+                            console.log('No link button found in hierarchy');
+                            return;
+                        }
+                        
+                        const scriptPath = button.dataset.scriptPath;
+                        console.log('Script path:', scriptPath);
+                        
+                        vscode.postMessage({
+                            command: 'openScript',
+                            scriptPath: scriptPath
+                        });
+                    }
+
+                    // Update the card click handler to also log events
                     document.querySelectorAll('.card').forEach(card => {
                         card.addEventListener('click', (event) => {
-                            // Only handle clicks if they're not on the pin button
-                            if (!event.target.closest('.pin-btn')) {
+                            console.log('Card clicked, target:', event.target);
+                            console.log('Is pin button?', !!event.target.closest('.pin-btn'));
+                            console.log('Is link button?', !!event.target.closest('.link-btn'));
+                            
+                            // Only handle clicks if they're not on the pin button or link button
+                            if (!event.target.closest('.pin-btn') && !event.target.closest('.link-btn')) {
                                 const scriptPath = card.dataset.scriptPath;
-                                console.log('Card clicked:', scriptPath);
+                                console.log('Executing script:', scriptPath);
                                 vscode.postMessage({
                                     command: 'executeScript',
                                     scriptPath: scriptPath
                                 });
+                            } else {
+                                console.log('Click was on a button, not executing script');
                             }
                         });
                     });
