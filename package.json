@@ -189,22 +189,12 @@
                         "type": "object",
                         "required": [
                             "extension",
-                            "system",
                             "command"
                         ],
                         "properties": {
                             "extension": {
                                 "type": "string",
                                 "description": "File extension (e.g., .sh, .ps1)"
-                            },
-                            "system": {
-                                "type": "string",
-                                "enum": [
-                                    "windows",
-                                    "linux",
-                                    "darwin"
-                                ],
-                                "description": "Operating system"
                             },
                             "command": {
                                 "type": "string",

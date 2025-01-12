@@ -76,7 +76,6 @@ export class ScriptService {
             params.forEach((value, index) => {
                 const param = script?.metadata.parameters?.[index];
                 if (param) {
-                    // Use simpler {paramName} syntax
                     command = command.replace(new RegExp(`{${param.name}}`, 'g'), value);
                 }
             });
@@ -89,15 +88,13 @@ export class ScriptService {
         }
 
         const config = vscode.workspace.getConfiguration('scriptsRunner');
-        const extensions = config.get<Array<{ extension: string; system: string; command: string }>>('fileExtensions', []);
+        const extensions = config.get<Array<{ extension: string; command: string }>>('fileExtensions', []);
 
         const fileExt = path.extname(scriptPath);
-        const extensionConfig = extensions.find(
-            e => e.extension === fileExt && e.system === this.platform
-        );
+        const extensionConfig = extensions.find(e => e.extension === fileExt);
 
         if (!extensionConfig) {
-            throw new Error(`No command configured for ${fileExt} files on ${this.platform}`);
+            throw new Error(`No command configured for ${fileExt} files`);
         }
 
         return `${extensionConfig.command} "${scriptPath}" ${params.join(' ')}${exitCommand}`;
@@ -250,8 +247,8 @@ export class ScriptService {
                 '; ' + exitCommands.join('; ') : '';
 
             const scriptCommand = this.getScriptCommand(
-                script.path, 
-                params, 
+                script.path,
+                params,
                 exitCommand,
                 script,
                 script.inlineScript

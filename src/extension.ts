@@ -22,7 +22,7 @@ export async function activate(context: vscode.ExtensionContext) {
     console.log('Scripts Runner extension is being activated');
 
     const config = vscode.workspace.getConfiguration('scriptsRunner');
-    
+
     // Log environment details
     console.log('Environment details:', {
         remoteName: vscode.env.remoteName,
@@ -33,30 +33,29 @@ export async function activate(context: vscode.ExtensionContext) {
     });
 
     // Create environment-specific initialization key
-    const envKey = vscode.env.remoteName 
-        ? `initialized-${vscode.env.remoteName}` 
+    const envKey = vscode.env.remoteName
+        ? `initialized-${vscode.env.remoteName}`
         : 'initialized-local';
-    
+
     console.log('Using initialization key:', envKey);
-    
+
     // Check if this environment has been initialized
     const isInitialized = context.globalState.get(envKey);
-    
+
     if (!isInitialized) {
         console.log(`First installation detected for environment: ${envKey}`);
-        
+
         // Clear any existing settings
         await config.update('sources', undefined, ConfigurationTarget.Global);
         await config.update('fileExtensions', undefined, ConfigurationTarget.Global);
         await config.update('viewType', undefined, ConfigurationTarget.Global);
-        
+
         // Initialize with defaults
         await config.update('sources', [], ConfigurationTarget.Global);
-        
+
         const builtInCommands = [
-            { extension: '.sh', system: 'linux', command: 'bash', builtIn: true },
-            { extension: '.sh', system: 'darwin', command: 'bash', builtIn: true },
-            { extension: '.ps1', system: 'windows', command: 'powershell -File', builtIn: true },
+            { extension: '.sh', command: 'bash', builtIn: true },
+            { extension: '.ps1', command: 'powershell -File', builtIn: true },
         ];
         await config.update('fileExtensions', builtInCommands, ConfigurationTarget.Global);
         await config.update('viewType', 'card', ConfigurationTarget.Global);
@@ -273,7 +272,7 @@ export async function activate(context: vscode.ExtensionContext) {
         const config = vscode.workspace.getConfiguration('scriptsRunner');
         const currentView = config.inspect('viewType')?.globalValue as string || 'card';
         const newView = currentView === 'list' ? 'card' : 'list';
-        
+
         // Use updateGlobalConfiguration instead
         await updateGlobalConfiguration('viewType', newView);
     });

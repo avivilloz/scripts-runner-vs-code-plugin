@@ -3,7 +3,6 @@ import { ConfigurationTarget } from 'vscode';
 
 export interface FileExtensionConfig {
     extension: string;
-    system: 'windows' | 'linux' | 'darwin';
     command: string;
     builtIn?: boolean;
 }
@@ -51,14 +50,12 @@ export class FileExtensionConfigProvider {
                         if (message.originalValues) {
                             // Find the original extension configuration
                             existingIndex = extensions.findIndex(
-                                e => e.extension === message.originalValues.extension &&
-                                    e.system === message.originalValues.system
+                                e => e.extension === message.originalValues.extension
                             );
                         } else {
                             // For new extensions, check if it already exists
                             existingIndex = extensions.findIndex(
-                                e => e.extension === message.config.extension &&
-                                    e.system === message.config.system
+                                e => e.extension === message.config.extension
                             );
                         }
 
@@ -85,8 +82,7 @@ export class FileExtensionConfigProvider {
                 case 'removeExtension':
                     try {
                         const updatedExtensions = extensions.filter(
-                            e => !(e.extension === message.extension &&
-                                e.system === message.system)
+                            e => !(e.extension === message.extension)
                         );
 
                         await this.updateConfig(updatedExtensions);
@@ -211,16 +207,6 @@ export class FileExtensionConfigProvider {
                     extensionInput.value = config?.extension || '';
                     extensionInput.disabled = !isNew && !config?.editing;
                     
-                    const systemSelect = document.createElement('select');
-                    systemSelect.className = 'system-field';
-                    systemSelect.innerHTML = \`
-                        <option value="windows">Windows</option>
-                        <option value="linux">Linux</option>
-                        <option value="darwin">macOS</option>
-                    \`;
-                    systemSelect.value = config?.system || 'windows';
-                    systemSelect.disabled = !isNew && !config?.editing;
-                    
                     const commandInput = document.createElement('input');
                     commandInput.placeholder = 'Command';
                     commandInput.className = 'command-field';
@@ -249,7 +235,6 @@ export class FileExtensionConfigProvider {
                     }
 
                     item.appendChild(extensionInput);
-                    item.appendChild(systemSelect);
                     item.appendChild(commandInput);
                     item.appendChild(saveBtn);
                     item.appendChild(editBtn);
@@ -266,7 +251,6 @@ export class FileExtensionConfigProvider {
 
                         const newConfig = {
                             extension: extensionInput.value,
-                            system: systemSelect.value,
                             command: commandInput.value,
                             builtIn: config?.builtIn || false
                         };
@@ -284,7 +268,6 @@ export class FileExtensionConfigProvider {
                             item.remove();
                         } else {
                             extensionInput.disabled = true;
-                            systemSelect.disabled = true;
                             commandInput.disabled = true;
                             saveBtn.style.display = 'none';
                             editBtn.style.display = 'block';
@@ -293,7 +276,6 @@ export class FileExtensionConfigProvider {
 
                     editBtn.addEventListener('click', () => {
                         extensionInput.disabled = false;
-                        systemSelect.disabled = false;
                         commandInput.disabled = false;
                         saveBtn.style.display = 'block';
                         editBtn.style.display = 'none';
@@ -302,8 +284,7 @@ export class FileExtensionConfigProvider {
                     removeBtn.addEventListener('click', () => {
                         vscode.postMessage({ 
                             command: 'removeExtension',
-                            extension: extensionInput.value,
-                            system: systemSelect.value
+                            extension: extensionInput.value
                         });
                         item.remove();
                     });
@@ -335,6 +316,13 @@ export class FileExtensionConfigProvider {
 
                 // Initial render AFTER event listener is set up
                 renderExtensions();
+
+                window.removeSource = (sourceName) => {
+                    vscode.postMessage({ 
+                        command: 'removeExtension',
+                        extension: extensionInput.value
+                    });
+                };
             </script>
         </body>
         </html>`;
