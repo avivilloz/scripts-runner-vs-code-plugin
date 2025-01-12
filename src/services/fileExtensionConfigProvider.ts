@@ -70,7 +70,8 @@ export class FileExtensionConfigProvider {
 
                         this.panel?.webview.postMessage({
                             command: 'updateExtensions',
-                            extensions: extensions
+                            extensions: extensions,
+                            savedExtension: message.config.extension
                         });
 
                         vscode.window.showInformationMessage('File extension configuration saved');
@@ -90,12 +91,43 @@ export class FileExtensionConfigProvider {
 
                         this.panel?.webview.postMessage({
                             command: 'updateExtensions',
-                            extensions: updatedExtensions
+                            extensions: updatedExtensions,
+                            removedExtension: message.extension
                         });
 
                         vscode.window.showInformationMessage('File extension configuration removed');
                     } catch (error) {
                         vscode.window.showErrorMessage('Failed to remove file extension configuration');
+                    }
+                    break;
+
+                case 'saveAllExtensions':
+                    try {
+                        const updatedExtensions = [...extensions];
+
+                        for (const newConfig of message.configs) {
+                            const existingIndex = updatedExtensions.findIndex(
+                                e => e.extension === newConfig.extension
+                            );
+
+                            if (existingIndex >= 0) {
+                                updatedExtensions[existingIndex] = newConfig;
+                            } else {
+                                updatedExtensions.push(newConfig);
+                            }
+                        }
+
+                        await this.updateConfig(updatedExtensions);
+                        await this.onConfigurationChanged();
+
+                        this.panel?.webview.postMessage({
+                            command: 'updateExtensions',
+                            extensions: updatedExtensions
+                        });
+
+                        vscode.window.showInformationMessage('All file extension configurations saved');
+                    } catch (error) {
+                        vscode.window.showErrorMessage('Failed to save file extension configurations');
                     }
                     break;
             }
@@ -184,18 +216,33 @@ export class FileExtensionConfigProvider {
                     font-size: 1.2em;
                     margin-bottom: 16px;
                 }
+                .general-save {
+                    margin-top: 16px;
+                    display: none;
+                }
+                button:disabled {
+                    opacity: 0.6;
+                    cursor: not-allowed;
+                }
             </style>
         </head>
         <body>
             <div class="section-title">File Extension Commands</div>
             <div id="extensionsList"></div>
-            <button id="addNewBtn" class="add-new">Add New Extension</button>
+            <button id="addNewBtn" class="add-new-button">Add New Extension</button>
+            <button id="saveAllBtn" class="general-save">Save All Changes</button>
 
             <script>
                 const vscode = acquireVsCodeApi();
-                const extensions = ${extensionsJson};
+                let extensions = ${extensionsJson};
                 const extensionsList = document.getElementById('extensionsList');
                 const addNewBtn = document.getElementById('addNewBtn');
+                const saveAllBtn = document.getElementById('saveAllBtn');
+                let editModeCount = 0;
+
+                function updateSaveAllButton() {
+                    saveAllBtn.style.display = editModeCount > 0 ? 'block' : 'none';
+                }
 
                 function createExtensionItem(config = null, isNew = false) {
                     const item = document.createElement('div');
@@ -215,6 +262,7 @@ export class FileExtensionConfigProvider {
 
                     const saveBtn = document.createElement('button');
                     saveBtn.textContent = 'Save';
+                    saveBtn.type = 'submit';
                     saveBtn.style.display = isNew || config?.editing ? 'block' : 'none';
                     
                     const editBtn = document.createElement('button');
@@ -227,18 +275,10 @@ export class FileExtensionConfigProvider {
                     removeBtn.className = 'secondary';
                     removeBtn.style.display = !config?.builtIn ? 'block' : 'none';
 
-                    if (config?.builtIn) {
-                        const builtInBadge = document.createElement('span');
-                        builtInBadge.className = 'built-in-badge';
-                        builtInBadge.textContent = 'Built-in';
-                        item.appendChild(builtInBadge);
+                    if (isNew || config?.editing) {
+                        editModeCount++;
+                        updateSaveAllButton();
                     }
-
-                    item.appendChild(extensionInput);
-                    item.appendChild(commandInput);
-                    item.appendChild(saveBtn);
-                    item.appendChild(editBtn);
-                    item.appendChild(removeBtn);
 
                     saveBtn.addEventListener('click', () => {
                         if (!extensionInput.value || !commandInput.value) {
@@ -259,19 +299,16 @@ export class FileExtensionConfigProvider {
                             command: 'saveExtension',
                             config: newConfig,
                             originalValues: isNew ? null : {
-                                extension: config.extension,
-                                system: config.system
+                                extension: config.extension
                             }
                         });
 
-                        if (isNew) {
-                            item.remove();
-                        } else {
-                            extensionInput.disabled = true;
-                            commandInput.disabled = true;
-                            saveBtn.style.display = 'none';
-                            editBtn.style.display = 'block';
-                        }
+                        extensionInput.disabled = true;
+                        commandInput.disabled = true;
+                        saveBtn.style.display = 'none';
+                        editBtn.style.display = 'block';
+                        editModeCount--;
+                        updateSaveAllButton();
                     });
 
                     editBtn.addEventListener('click', () => {
@@ -279,6 +316,8 @@ export class FileExtensionConfigProvider {
                         commandInput.disabled = false;
                         saveBtn.style.display = 'block';
                         editBtn.style.display = 'none';
+                        editModeCount++;
+                        updateSaveAllButton();
                     });
 
                     removeBtn.addEventListener('click', () => {
@@ -287,7 +326,17 @@ export class FileExtensionConfigProvider {
                             extension: extensionInput.value
                         });
                         item.remove();
+                        if (!extensionInput.disabled) {
+                            editModeCount--;
+                            updateSaveAllButton();
+                        }
                     });
+
+                    item.appendChild(extensionInput);
+                    item.appendChild(commandInput);
+                    item.appendChild(saveBtn);
+                    item.appendChild(editBtn);
+                    item.appendChild(removeBtn);
 
                     return item;
                 }
@@ -303,26 +352,90 @@ export class FileExtensionConfigProvider {
                     extensionsList.appendChild(createExtensionItem(null, true));
                 });
 
+                saveAllBtn.addEventListener('click', () => {
+                    const items = extensionsList.querySelectorAll('.extension-item');
+                    const configs = [];
+                    
+                    items.forEach(item => {
+                        const extensionInput = item.querySelector('.extension-field');
+                        const commandInput = item.querySelector('.command-field');
+                        
+                        if (!extensionInput.disabled && extensionInput.value && commandInput.value) {
+                            configs.push({
+                                extension: extensionInput.value,
+                                command: commandInput.value,
+                                builtIn: item.classList.contains('built-in')
+                            });
+                        }
+                    });
+
+                    if (configs.length > 0) {
+                        vscode.postMessage({
+                            command: 'saveAllExtensions',
+                            configs: configs
+                        });
+
+                        items.forEach(item => {
+                            const extensionInput = item.querySelector('.extension-field');
+                            const commandInput = item.querySelector('.command-field');
+                            const saveBtn = item.querySelector('button[type="submit"]');
+                            const editBtn = item.querySelector('button.secondary');
+
+                            if (!extensionInput.disabled) {
+                                extensionInput.disabled = true;
+                                commandInput.disabled = true;
+                                saveBtn.style.display = 'none';
+                                editBtn.style.display = 'block';
+                                editModeCount--;
+                            }
+                        });
+                        updateSaveAllButton();
+                    }
+                });
+
                 window.addEventListener('message', event => {
                     const message = event.data;
                     switch (message.command) {
                         case 'updateExtensions':
-                            extensions.length = 0;
-                            extensions.push(...message.extensions);
-                            renderExtensions();
+                            extensions = message.extensions;
+                            
+                            if (message.savedExtension) {
+                                const items = extensionsList.querySelectorAll('.extension-item');
+                                items.forEach(item => {
+                                    const extensionInput = item.querySelector('.extension-field');
+                                    if (extensionInput.value === message.savedExtension) {
+                                        const commandInput = item.querySelector('.command-field');
+                                        const saveBtn = item.querySelector('button[type="submit"]');
+                                        const editBtn = item.querySelector('button.secondary');
+
+                                        extensionInput.disabled = true;
+                                        commandInput.disabled = true;
+                                        saveBtn.style.display = 'none';
+                                        editBtn.style.display = 'block';
+                                        editModeCount--;
+                                        updateSaveAllButton();
+                                    }
+                                });
+                            } else if (message.removedExtension) {
+                                const items = extensionsList.querySelectorAll('.extension-item');
+                                items.forEach(item => {
+                                    const extensionInput = item.querySelector('.extension-field');
+                                    if (extensionInput.value === message.removedExtension) {
+                                        item.remove();
+                                        if (!extensionInput.disabled) {
+                                            editModeCount--;
+                                            updateSaveAllButton();
+                                        }
+                                    }
+                                });
+                            } else {
+                                renderExtensions();
+                            }
                             break;
                     }
                 });
 
-                // Initial render AFTER event listener is set up
                 renderExtensions();
-
-                window.removeSource = (sourceName) => {
-                    vscode.postMessage({ 
-                        command: 'removeExtension',
-                        extension: extensionInput.value
-                    });
-                };
             </script>
         </body>
         </html>`;
