@@ -325,7 +325,7 @@ export class FileExtensionConfigProvider {
                     }
 
                     const patternInput = document.createElement('input');
-                    patternInput.placeholder = '*.py, test_*.py';
+                    patternInput.placeholder = 'Pattern';
                     patternInput.className = 'extension-field';
                     patternInput.value = config?.pattern || '';
                     patternInput.disabled = !isNew && !config?.editing;
