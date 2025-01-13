@@ -2,7 +2,7 @@ import * as vscode from 'vscode';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
-import { Script, ScriptMetadata } from '../models/script';
+import { Script, ScriptMetadata, ScriptConfig, ScriptsConfig } from '../models/script';
 import { InputFormProvider } from './inputFormProvider';
 
 type SupportedPlatform = 'windows' | 'linux' | 'darwin';
@@ -30,43 +30,85 @@ export class ScriptService {
                 console.error('Scripts path does not exist:', source.path);
                 continue;
             }
-            const results = await this.findScriptsRecursively(source.path, source.sourceName, source.sourcePath);
-            allScripts.push(...results);
+
+            const scriptsJsonPath = path.join(source.path, 'scripts.json');
+            if (!fs.existsSync(scriptsJsonPath)) {
+                console.error('scripts.json not found in:', source.path);
+                continue;
+            }
+
+            try {
+                const content = await fs.promises.readFile(scriptsJsonPath, 'utf-8');
+                const config: ScriptsConfig = JSON.parse(content);
+
+                for (const scriptConfig of config.scripts) {
+                    const script = await this.loadScriptFromConfig(
+                        scriptConfig,
+                        source.path,
+                        source.sourceName,
+                        source.sourcePath
+                    );
+                    if (script) {
+                        allScripts.push(script);
+                    }
+                }
+            } catch (error) {
+                console.error('Error loading scripts.json from:', source.path, error);
+            }
         }
 
         console.log('Found total scripts:', allScripts.length);
         return allScripts;
     }
 
-    private async findScriptsRecursively(dir: string, sourceName: string, sourcePath: string): Promise<Script[]> {
-        console.log('Searching for scripts in:', dir);
-        const scripts: Script[] = [];
-        const files = await fs.promises.readdir(dir).catch((err) => {
-            console.error('Error reading directory:', dir, err);
-            return [];
-        });
-
-        console.log('Found files:', files);
-
-        for (const file of files) {
-            const filePath = path.join(dir, file);
-            console.log('Checking path:', filePath);
-            const stats = await fs.promises.stat(filePath);
-
-            if (stats.isDirectory()) {
-                const metadataPath = path.join(filePath, 'script.json');
-                // Check for script.json in current directory
-                if (await fs.promises.access(metadataPath).then(() => true, () => false)) {
-                    const script = await this.loadScriptFromMetadata(filePath, metadataPath, sourceName, sourcePath);
-                    if (script) scripts.push(script);
-                }
-                // Recursively check subdirectories
-                const subDirScripts = await this.findScriptsRecursively(filePath, sourceName, sourcePath);
-                scripts.push(...subDirScripts);
-            }
+    private async loadScriptFromConfig(
+        config: ScriptConfig,
+        basePath: string,
+        sourceName: string,
+        sourcePath: string
+    ): Promise<Script | null> {
+        console.log('Loading script config:', config.name);
+        const platformScript = config.platforms[this.platform];
+        if (!platformScript) {
+            console.log(`Script ${config.name} not supported on platform ${this.platform}`);
+            return null;
         }
 
-        return scripts;
+        let scriptPath: string | undefined = undefined;
+        let inlineScript: string | undefined = undefined;
+
+        if (typeof platformScript === 'string') {
+            inlineScript = platformScript;
+            // For inline scripts, use the scripts.json directory as the path
+            scriptPath = basePath;
+        } else if (Array.isArray(platformScript) && platformScript.length > 0) {
+            // Use the first script path directly
+            scriptPath = path.join(basePath, platformScript[0]);
+            console.log('Checking script path:', scriptPath);
+            if (!await fs.promises.access(scriptPath).then(() => true, () => false)) {
+                console.error(`Script file not found: ${scriptPath}`);
+                return null;
+            }
+        } else {
+            console.error(`Invalid platform script configuration for ${config.name}`);
+            return null;
+        }
+
+        return {
+            metadata: {
+                name: config.name,
+                description: config.description,
+                category: config.category,
+                tags: config.tags,
+                platforms: config.platforms,
+                parameters: config.parameters,
+                terminal: config.terminal
+            },
+            path: scriptPath,
+            sourceName,
+            sourcePath,
+            inlineScript
+        };
     }
 
     private getScriptCommand(scriptPath: string | null, params: string[], exitCommand: string, script?: Script, inlineScript?: string): string {
@@ -110,54 +152,6 @@ export class ScriptService {
             .replace(/\*/g, '.*')                  // Convert * to .*
             .replace(/\?/g, '.');                  // Convert ? to .
         return new RegExp(`^${escaped}$`);
-    }
-
-    private async loadScriptFromMetadata(scriptDir: string, metadataPath: string, sourceName: string, sourcePath: string): Promise<Script | null> {
-        console.log('Loading metadata from:', metadataPath);
-        try {
-            const content = await fs.promises.readFile(metadataPath, 'utf-8');
-            const metadata: ScriptMetadata = JSON.parse(content);
-
-            const platformScript = metadata.platforms[this.platform];
-            if (!platformScript) {
-                console.log(`Script not supported on platform ${this.platform}`);
-                return null;
-            }
-
-            // Handle both inline and file-based scripts
-            let scriptPath: string | undefined = undefined;
-            let inlineScript: string | undefined = undefined;
-
-            if (typeof platformScript === 'string') {
-                inlineScript = platformScript;
-            } else if (Array.isArray(platformScript) && platformScript.length > 0) {
-                scriptPath = path.join(scriptDir, platformScript[0]);
-                if (!await fs.promises.access(scriptPath).then(() => true, () => false)) {
-                    return null;
-                }
-            } else {
-                return null;
-            }
-
-            if (!metadata.name || !metadata.description) {
-                console.error(`Invalid metadata in ${metadataPath}: missing name or description`);
-                return null;
-            }
-
-            return {
-                metadata,
-                path: scriptPath || metadataPath, // Use metadata path for inline scripts
-                sourceName,
-                sourcePath,
-                inlineScript // Add this new property
-            };
-        } catch (error: unknown) {
-            console.error(`Error loading script metadata from ${metadataPath}:`, error);
-            if (error instanceof Error) {
-                console.error(error.message);
-            }
-            return null;
-        }
     }
 
     private quoteParameter(param: string): string {

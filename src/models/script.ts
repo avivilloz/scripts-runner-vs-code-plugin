@@ -34,3 +34,25 @@ export interface Script {
     sourcePath: string;
     inlineScript?: string;
 }
+
+export interface ScriptConfig {
+    name: string;
+    description: string;
+    category?: string;
+    tags?: string[];
+    path: string;  // Relative path from scripts.json location
+    platforms: PlatformScripts;
+    parameters?: ParameterMetadata[];
+    terminal?: {
+        new?: boolean;
+        onExit?: {
+            refresh?: boolean;
+            clear?: boolean;
+            close?: boolean;
+        };
+    };
+}
+
+export interface ScriptsConfig {
+    scripts: ScriptConfig[];
+}

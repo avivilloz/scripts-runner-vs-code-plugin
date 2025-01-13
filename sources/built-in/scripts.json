@@ -1,0 +1,236 @@
+{
+    "scripts": [
+        {
+            "name": "Generate SSH Key",
+            "description": "Generates SSH key",
+            "category": "SSH",
+            "tags": [
+                "ssh",
+                "security"
+            ],
+            "platforms": {
+                "linux": [
+                    "ssh/generate_key/script.sh"
+                ],
+                "darwin": [
+                    "ssh/generate_key/script.sh"
+                ],
+                "windows": [
+                    "ssh/generate_key/script.ps1"
+                ]
+            },
+            "parameters": [
+                {
+                    "name": "alias",
+                    "description": "Alias for the SSH key file",
+                    "type": "text"
+                },
+                {
+                    "name": "is_wsl",
+                    "description": "Is running under Windows Subsystem for Linux",
+                    "type": "boolean",
+                    "default": false
+                },
+                {
+                    "name": "windows_username",
+                    "description": "Windows username (required if is_wsl is true)",
+                    "type": "text",
+                    "default": "Username"
+                }
+            ]
+        },
+        {
+            "name": "Configure SSH Host",
+            "description": "Generates SSH key and configures SSH for a remote host",
+            "category": "SSH",
+            "tags": [
+                "ssh",
+                "security"
+            ],
+            "platforms": {
+                "linux": [
+                    "ssh/configure_host/script.sh"
+                ],
+                "darwin": [
+                    "ssh/configure_host/script.sh"
+                ],
+                "windows": [
+                    "ssh/configure_host/script.ps1"
+                ]
+            },
+            "parameters": [
+                {
+                    "name": "alias",
+                    "description": "Alias for the SSH key file and configuration",
+                    "type": "text"
+                },
+                {
+                    "name": "hostname",
+                    "description": "Host IP address or DNS name",
+                    "type": "text"
+                },
+                {
+                    "name": "username",
+                    "description": "Username in the remote host",
+                    "type": "text"
+                },
+                {
+                    "name": "is_wsl",
+                    "description": "Is running under Windows Subsystem for Linux",
+                    "type": "boolean",
+                    "default": false
+                },
+                {
+                    "name": "windows_username",
+                    "description": "Windows username (required if is_wsl is true)",
+                    "type": "text",
+                    "default": "Username"
+                }
+            ]
+        },
+        {
+            "name": "Git SSH Setup",
+            "description": "Generates SSH key and configures SSH for Git hosting services",
+            "category": "Git",
+            "tags": [
+                "git",
+                "ssh",
+                "security"
+            ],
+            "platforms": {
+                "linux": [
+                    "git/ssh_setup/script.sh"
+                ],
+                "darwin": [
+                    "git/ssh_setup/script.sh"
+                ],
+                "windows": [
+                    "git/ssh_setup/script.ps1"
+                ]
+            },
+            "parameters": [
+                {
+                    "name": "key_label",
+                    "description": "Label for the SSH key file",
+                    "type": "text"
+                },
+                {
+                    "name": "hostname",
+                    "description": "Git hosting service (e.g., github.com, gitlab.com)",
+                    "type": "select",
+                    "default": "bitbucket.org",
+                    "options": [
+                        "github.com",
+                        "gitlab.com",
+                        "bitbucket.org",
+                        "azure.com"
+                    ]
+                },
+                {
+                    "name": "is_wsl",
+                    "description": "Is running under Windows Subsystem for Linux",
+                    "type": "boolean",
+                    "default": false
+                },
+                {
+                    "name": "windows_username",
+                    "description": "Windows username (required if is_wsl is true)",
+                    "type": "text",
+                    "default": "Username"
+                }
+            ]
+        },
+        {
+            "name": "Git Config",
+            "description": "Configure Git user settings (name and email)",
+            "category": "Git",
+            "tags": [
+                "git",
+                "config"
+            ],
+            "platforms": {
+                "linux": [
+                    "git/config/script.sh"
+                ],
+                "darwin": [
+                    "git/config/script.sh"
+                ],
+                "windows": [
+                    "git/config/script.ps1"
+                ]
+            },
+            "terminal": {
+                "onExit": {
+                    "refresh": true
+                }
+            },
+            "parameters": [
+                {
+                    "name": "name",
+                    "description": "Git user name",
+                    "type": "text"
+                },
+                {
+                    "name": "email",
+                    "description": "Git user email",
+                    "type": "text"
+                },
+                {
+                    "name": "scope",
+                    "description": "Git config scope",
+                    "type": "select",
+                    "default": "local",
+                    "options": [
+                        "local",
+                        "global"
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "Git Quick Push",
+            "description": "Adds files and pushes changes to remote repository. Can handle both tracked and untracked files.",
+            "category": "Git",
+            "tags": [
+                "git",
+                "push",
+                "commit"
+            ],
+            "platforms": {
+                "linux": [
+                    "git/quick_push/script.sh"
+                ],
+                "darwin": [
+                    "git/quick_push/script.sh"
+                ],
+                "windows": [
+                    "git/quick_push/script.ps1"
+                ]
+            },
+            "parameters": [
+                {
+                    "name": "mode",
+                    "description": "Push mode ('all' for all files, 'tracked' for only tracked files)",
+                    "type": "select",
+                    "default": "all",
+                    "options": [
+                        "all",
+                        "tracked"
+                    ]
+                },
+                {
+                    "name": "message",
+                    "description": "Commit message",
+                    "type": "text",
+                    "default": "updating repository"
+                },
+                {
+                    "name": "branch",
+                    "description": "New branch name (optional). If provided, creates and pushes to new branch",
+                    "type": "text",
+                    "default": "none"
+                }
+            ]
+        }
+    ]
+}
