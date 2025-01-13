@@ -1,8 +1,8 @@
 import * as vscode from 'vscode';
 import { ConfigurationTarget } from 'vscode';
 
-export interface FileExtensionConfig {
-    extension: string;
+export interface FilePattern {
+    pattern: string;
     command: string;
     builtIn?: boolean;
 }
@@ -24,7 +24,7 @@ export class FileExtensionConfigProvider {
 
         this.panel = vscode.window.createWebviewPanel(
             FileExtensionConfigProvider.viewType,
-            'Configure File Extensions',
+            'Configure File Patterns',
             vscode.ViewColumn.One,
             {
                 enableScripts: true,
@@ -40,7 +40,7 @@ export class FileExtensionConfigProvider {
 
         this.panel.webview.onDidReceiveMessage(async message => {
             const config = vscode.workspace.getConfiguration('scriptsRunner');
-            const extensions = config.get<FileExtensionConfig[]>('fileExtensions', []);
+            const extensions = config.get<FilePattern[]>('fileExtensions', []);
 
             switch (message.command) {
                 case 'saveExtension':
@@ -50,12 +50,12 @@ export class FileExtensionConfigProvider {
                         if (message.originalValues) {
                             // Find the original extension configuration
                             existingIndex = extensions.findIndex(
-                                e => e.extension === message.originalValues.extension
+                                e => e.pattern === message.originalValues.pattern
                             );
                         } else {
                             // For new extensions, check if it already exists
                             existingIndex = extensions.findIndex(
-                                e => e.extension === message.config.extension
+                                e => e.pattern === message.config.pattern
                             );
                         }
 
@@ -71,7 +71,7 @@ export class FileExtensionConfigProvider {
                         this.panel?.webview.postMessage({
                             command: 'updateExtensions',
                             extensions: extensions,
-                            savedExtension: message.config.extension
+                            savedExtension: message.config.pattern
                         });
 
                         vscode.window.showInformationMessage('File extension configuration saved');
@@ -83,7 +83,7 @@ export class FileExtensionConfigProvider {
                 case 'removeExtension':
                     try {
                         const updatedExtensions = extensions.filter(
-                            e => !(e.extension === message.extension)
+                            e => !(e.pattern === message.pattern)
                         );
 
                         await this.updateConfig(updatedExtensions);
@@ -92,7 +92,7 @@ export class FileExtensionConfigProvider {
                         this.panel?.webview.postMessage({
                             command: 'updateExtensions',
                             extensions: updatedExtensions,
-                            removedExtension: message.extension
+                            removedExtension: message.pattern
                         });
 
                         vscode.window.showInformationMessage('File extension configuration removed');
@@ -107,7 +107,7 @@ export class FileExtensionConfigProvider {
 
                         for (const newConfig of message.configs) {
                             const existingIndex = updatedExtensions.findIndex(
-                                e => e.extension === newConfig.extension
+                                e => e.pattern === newConfig.pattern
                             );
 
                             if (existingIndex >= 0) {
@@ -130,13 +130,29 @@ export class FileExtensionConfigProvider {
                         vscode.window.showErrorMessage('Failed to save file extension configurations');
                     }
                     break;
+
+                case 'reorderPatterns':
+                    try {
+                        // Directly update the configuration with the new order
+                        await this.updateConfig(message.patterns);
+                        await this.onConfigurationChanged();
+
+                        // Confirm the update to the webview
+                        this.panel?.webview.postMessage({
+                            command: 'updateExtensions',
+                            extensions: message.patterns
+                        });
+                    } catch (error) {
+                        vscode.window.showErrorMessage('Failed to update pattern order');
+                    }
+                    break;
             }
         });
     }
 
     private getWebviewContent() {
         const config = vscode.workspace.getConfiguration('scriptsRunner');
-        const extensions = config.get<FileExtensionConfig[]>('fileExtensions', []);
+        const extensions = config.get<FilePattern[]>('fileExtensions', []);
         const extensionsJson = JSON.stringify(extensions);
 
         return `<!DOCTYPE html>
@@ -144,7 +160,7 @@ export class FileExtensionConfigProvider {
         <head>
             <meta charset="UTF-8">
             <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <title>File Extensions Configuration</title>
+            <title>File Pattern Commands</title>
             <style>
                 body { 
                     padding: 20px;
@@ -159,6 +175,9 @@ export class FileExtensionConfigProvider {
                     margin-bottom: 8px;
                     background: var(--vscode-editor-background);
                     border: 1px solid var(--vscode-input-border);
+                    cursor: move;
+                    position: relative;
+                    user-select: none;
                 }
                 .extension-item.built-in {
                     background: var(--vscode-editor-inactiveSelectionBackground);
@@ -224,12 +243,43 @@ export class FileExtensionConfigProvider {
                     opacity: 0.6;
                     cursor: not-allowed;
                 }
+                .extension-item {
+                    cursor: move;
+                    position: relative;
+                    user-select: none;
+                }
+
+                .extension-item.dragging {
+                    opacity: 0.5;
+                    background: var(--vscode-editor-selectionBackground);
+                }
+
+                .extension-item.drag-over {
+                    border-top: 2px solid var(--vscode-focusBorder);
+                }
+
+                .drag-handle {
+                    cursor: move;
+                    padding: 0 8px;
+                    opacity: 0.6;
+                    display: flex;
+                    align-items: center;
+                }
+
+                .drag-handle:hover {
+                    opacity: 1;
+                }
+
+                .drag-handle::before {
+                    content: "≡";
+                    font-size: 20px;
+                }
             </style>
         </head>
         <body>
-            <div class="section-title">File Extension Commands</div>
+            <div class="section-title">File Pattern Commands</div>
             <div id="extensionsList"></div>
-            <button id="addNewBtn" class="add-new-button">Add New Extension</button>
+            <button id="addNewBtn" class="add-new-button">Add New Pattern</button>
             <button id="saveAllBtn" class="general-save">Save All Changes</button>
 
             <script>
@@ -239,6 +289,7 @@ export class FileExtensionConfigProvider {
                 const addNewBtn = document.getElementById('addNewBtn');
                 const saveAllBtn = document.getElementById('saveAllBtn');
                 let editModeCount = 0;
+                let draggedItem = null;
 
                 function updateSaveAllButton() {
                     saveAllBtn.style.display = editModeCount > 0 ? 'block' : 'none';
@@ -247,12 +298,19 @@ export class FileExtensionConfigProvider {
                 function createExtensionItem(config = null, isNew = false) {
                     const item = document.createElement('div');
                     item.className = 'extension-item' + (config?.builtIn ? ' built-in' : '');
+                    item.draggable = !config?.builtIn;
                     
-                    const extensionInput = document.createElement('input');
-                    extensionInput.placeholder = '.ext';
-                    extensionInput.className = 'extension-field';
-                    extensionInput.value = config?.extension || '';
-                    extensionInput.disabled = !isNew && !config?.editing;
+                    const dragHandle = document.createElement('div');
+                    dragHandle.className = 'drag-handle';
+                    if (!config?.builtIn) {
+                        item.appendChild(dragHandle);
+                    }
+
+                    const patternInput = document.createElement('input');
+                    patternInput.placeholder = '*.py, test_*.py';
+                    patternInput.className = 'extension-field';
+                    patternInput.value = config?.pattern || '';
+                    patternInput.disabled = !isNew && !config?.editing;
                     
                     const commandInput = document.createElement('input');
                     commandInput.placeholder = 'Command';
@@ -281,7 +339,7 @@ export class FileExtensionConfigProvider {
                     }
 
                     saveBtn.addEventListener('click', () => {
-                        if (!extensionInput.value || !commandInput.value) {
+                        if (!patternInput.value || !commandInput.value) {
                             vscode.postMessage({ 
                                 command: 'showError',
                                 message: 'All fields are required'
@@ -290,7 +348,7 @@ export class FileExtensionConfigProvider {
                         }
 
                         const newConfig = {
-                            extension: extensionInput.value,
+                            pattern: patternInput.value,
                             command: commandInput.value,
                             builtIn: config?.builtIn || false
                         };
@@ -299,11 +357,11 @@ export class FileExtensionConfigProvider {
                             command: 'saveExtension',
                             config: newConfig,
                             originalValues: isNew ? null : {
-                                extension: config.extension
+                                pattern: config.pattern
                             }
                         });
 
-                        extensionInput.disabled = true;
+                        patternInput.disabled = true;
                         commandInput.disabled = true;
                         saveBtn.style.display = 'none';
                         editBtn.style.display = 'block';
@@ -312,7 +370,7 @@ export class FileExtensionConfigProvider {
                     });
 
                     editBtn.addEventListener('click', () => {
-                        extensionInput.disabled = false;
+                        patternInput.disabled = false;
                         commandInput.disabled = false;
                         saveBtn.style.display = 'block';
                         editBtn.style.display = 'none';
@@ -323,22 +381,99 @@ export class FileExtensionConfigProvider {
                     removeBtn.addEventListener('click', () => {
                         vscode.postMessage({ 
                             command: 'removeExtension',
-                            extension: extensionInput.value
+                            pattern: patternInput.value
                         });
                         item.remove();
-                        if (!extensionInput.disabled) {
+                        if (!patternInput.disabled) {
                             editModeCount--;
                             updateSaveAllButton();
                         }
                     });
 
-                    item.appendChild(extensionInput);
+                    item.appendChild(dragHandle);
+                    item.appendChild(patternInput);
                     item.appendChild(commandInput);
                     item.appendChild(saveBtn);
                     item.appendChild(editBtn);
                     item.appendChild(removeBtn);
 
+                    // Add drag and drop event listeners
+                    if (!config?.builtIn) {
+                        item.addEventListener('dragstart', handleDragStart);
+                        item.addEventListener('dragend', handleDragEnd);
+                        item.addEventListener('dragover', handleDragOver);
+                        item.addEventListener('drop', handleDrop);
+                    }
+
                     return item;
+                }
+
+                function handleDragStart(e) {
+                    draggedItem = e.target;
+                    e.target.classList.add('dragging');
+                }
+
+                function handleDragEnd(e) {
+                    e.target.classList.remove('dragging');
+                    draggedItem = null;
+                    document.querySelectorAll('.extension-item').forEach(item => {
+                        item.classList.remove('drag-over');
+                    });
+                }
+
+                function handleDragOver(e) {
+                    e.preventDefault();
+                    const item = e.target.closest('.extension-item');
+                    if (item && item !== draggedItem && !item.classList.contains('built-in')) {
+                        item.classList.add('drag-over');
+                    }
+                }
+
+                function handleDrop(e) {
+                    e.preventDefault();
+                    const dropTarget = e.target.closest('.extension-item');
+                    
+                    if (dropTarget && draggedItem && dropTarget !== draggedItem && !dropTarget.classList.contains('built-in')) {
+                        const allItems = [...extensionsList.children];
+                        const draggedIndex = allItems.indexOf(draggedItem);
+                        const dropIndex = allItems.indexOf(dropTarget);
+                        
+                        // Reorder the items in the DOM
+                        if (draggedIndex < dropIndex) {
+                            dropTarget.parentNode.insertBefore(draggedItem, dropTarget.nextSibling);
+                        } else {
+                            dropTarget.parentNode.insertBefore(draggedItem, dropTarget);
+                        }
+
+                        // Get all current patterns in their new order
+                        const newOrder = [];
+                        document.querySelectorAll('.extension-item').forEach(item => {
+                            const patternInput = item.querySelector('.extension-field');
+                            const commandInput = item.querySelector('.command-field');
+                            const isBuiltIn = item.classList.contains('built-in');
+                            
+                            if (patternInput && commandInput) {
+                                newOrder.push({
+                                    pattern: patternInput.value,
+                                    command: commandInput.value,
+                                    builtIn: isBuiltIn
+                                });
+                            }
+                        });
+
+                        // Update local state
+                        extensions = newOrder;
+
+                        // Send the complete new order to the extension
+                        vscode.postMessage({
+                            command: 'reorderPatterns',
+                            patterns: newOrder
+                        });
+                    }
+
+                    document.querySelectorAll('.extension-item').forEach(item => {
+                        item.classList.remove('drag-over');
+                    });
                 }
 
                 function renderExtensions() {
@@ -357,12 +492,12 @@ export class FileExtensionConfigProvider {
                     const configs = [];
                     
                     items.forEach(item => {
-                        const extensionInput = item.querySelector('.extension-field');
+                        const patternInput = item.querySelector('.extension-field');
                         const commandInput = item.querySelector('.command-field');
                         
-                        if (!extensionInput.disabled && extensionInput.value && commandInput.value) {
+                        if (!patternInput.disabled && patternInput.value && commandInput.value) {
                             configs.push({
-                                extension: extensionInput.value,
+                                pattern: patternInput.value,
                                 command: commandInput.value,
                                 builtIn: item.classList.contains('built-in')
                             });
@@ -376,13 +511,13 @@ export class FileExtensionConfigProvider {
                         });
 
                         items.forEach(item => {
-                            const extensionInput = item.querySelector('.extension-field');
+                            const patternInput = item.querySelector('.extension-field');
                             const commandInput = item.querySelector('.command-field');
                             const saveBtn = item.querySelector('button[type="submit"]');
                             const editBtn = item.querySelector('button.secondary');
 
-                            if (!extensionInput.disabled) {
-                                extensionInput.disabled = true;
+                            if (!patternInput.disabled) {
+                                patternInput.disabled = true;
                                 commandInput.disabled = true;
                                 saveBtn.style.display = 'none';
                                 editBtn.style.display = 'block';
@@ -402,13 +537,13 @@ export class FileExtensionConfigProvider {
                             if (message.savedExtension) {
                                 const items = extensionsList.querySelectorAll('.extension-item');
                                 items.forEach(item => {
-                                    const extensionInput = item.querySelector('.extension-field');
-                                    if (extensionInput.value === message.savedExtension) {
+                                    const patternInput = item.querySelector('.extension-field');
+                                    if (patternInput.value === message.savedExtension) {
                                         const commandInput = item.querySelector('.command-field');
                                         const saveBtn = item.querySelector('button[type="submit"]');
                                         const editBtn = item.querySelector('button.secondary');
 
-                                        extensionInput.disabled = true;
+                                        patternInput.disabled = true;
                                         commandInput.disabled = true;
                                         saveBtn.style.display = 'none';
                                         editBtn.style.display = 'block';
@@ -419,10 +554,10 @@ export class FileExtensionConfigProvider {
                             } else if (message.removedExtension) {
                                 const items = extensionsList.querySelectorAll('.extension-item');
                                 items.forEach(item => {
-                                    const extensionInput = item.querySelector('.extension-field');
-                                    if (extensionInput.value === message.removedExtension) {
+                                    const patternInput = item.querySelector('.extension-field');
+                                    if (patternInput.value === message.removedExtension) {
                                         item.remove();
-                                        if (!extensionInput.disabled) {
+                                        if (!patternInput.disabled) {
                                             editModeCount--;
                                             updateSaveAllButton();
                                         }
@@ -441,8 +576,29 @@ export class FileExtensionConfigProvider {
         </html>`;
     }
 
-    private async updateConfig(extensions: FileExtensionConfig[]): Promise<void> {
+    private async updateConfig(patterns: FilePattern[]): Promise<void> {
         const config = vscode.workspace.getConfiguration('scriptsRunner');
-        await config.update('fileExtensions', extensions, ConfigurationTarget.Global);
+        await config.update('fileExtensions', patterns, ConfigurationTarget.Global);
+    }
+
+    private async validatePattern(pattern: FilePattern): Promise<void> {
+        try {
+            // Basic validation - ensure pattern is not empty
+            if (!pattern.pattern.trim()) {
+                throw new Error('Pattern cannot be empty');
+            }
+            // Try creating a regex from the pattern to validate syntax
+            this.patternToRegex(pattern.pattern);
+        } catch (error: any) {
+            throw new Error(`Invalid pattern: ${error.message}`);
+        }
+    }
+
+    private patternToRegex(pattern: string): RegExp {
+        const escaped = pattern
+            .replace(/[.+^${}()|[\]\\]/g, '\\$&')
+            .replace(/\*/g, '.*')
+            .replace(/\?/g, '.');
+        return new RegExp(`^${escaped}$`);
     }
 }

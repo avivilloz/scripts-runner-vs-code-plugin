@@ -188,30 +188,30 @@
                     "items": {
                         "type": "object",
                         "required": [
-                            "extension",
+                            "pattern",
                             "command"
                         ],
                         "properties": {
-                            "extension": {
+                            "pattern": {
                                 "type": "string",
-                                "description": "File extension (e.g., .sh, .ps1)"
+                                "description": "File pattern (e.g., *.py, test_*.py)"
                             },
                             "command": {
                                 "type": "string",
-                                "description": "Command to execute files with this extension"
+                                "description": "Command to execute files matching this pattern"
                             },
                             "builtIn": {
                                 "type": "boolean",
-                                "description": "Indicates if this is a built-in extension mapping",
+                                "description": "Indicates if this is a built-in pattern mapping",
                                 "default": false
                             }
                         }
                     },
                     "default": [],
-                    "description": "File extension command mappings",
+                    "description": "File pattern command mappings",
                     "editPresentation": "multilineJson",
                     "order": 2,
-                    "markdownDescription": "File extension command mappings. Click [Manage File Extensions](command:scripts-runner.configureFileExtensions) to open the configuration UI.",
+                    "markdownDescription": "File pattern command mappings. Click [Manage Commands](command:scripts-runner.configureFileExtensions) to open the configuration UI.",
                     "scope": "machine-overridable"
                 },
                 "scriptsRunner.viewType": {

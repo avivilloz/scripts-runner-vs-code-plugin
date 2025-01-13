@@ -88,16 +88,28 @@ export class ScriptService {
         }
 
         const config = vscode.workspace.getConfiguration('scriptsRunner');
-        const extensions = config.get<Array<{ extension: string; command: string }>>('fileExtensions', []);
+        const patterns = config.get<Array<{ pattern: string; command: string }>>('fileExtensions', []);
 
-        const fileExt = path.extname(scriptPath);
-        const extensionConfig = extensions.find(e => e.extension === fileExt);
+        // Find first matching pattern
+        const matchingPattern = patterns.find(p => {
+            const regex = this.patternToRegex(p.pattern);
+            return regex.test(path.basename(scriptPath));
+        });
 
-        if (!extensionConfig) {
-            throw new Error(`No command configured for ${fileExt} files`);
+        if (!matchingPattern) {
+            throw new Error(`No command configured for file: ${scriptPath}`);
         }
 
-        return `${extensionConfig.command} "${scriptPath}" ${params.join(' ')}${exitCommand}`;
+        return `${matchingPattern.command} "${scriptPath}" ${params.join(' ')}${exitCommand}`;
+    }
+
+    private patternToRegex(pattern: string): RegExp {
+        // Convert glob pattern to regex
+        const escaped = pattern
+            .replace(/[.+^${}()|[\]\\]/g, '\\$&') // Escape special regex chars
+            .replace(/\*/g, '.*')                  // Convert * to .*
+            .replace(/\?/g, '.');                  // Convert ? to .
+        return new RegExp(`^${escaped}$`);
     }
 
     private async loadScriptFromMetadata(scriptDir: string, metadataPath: string, sourceName: string, sourcePath: string): Promise<Script | null> {

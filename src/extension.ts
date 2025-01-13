@@ -53,11 +53,11 @@ export async function activate(context: vscode.ExtensionContext) {
         // Initialize with defaults
         await config.update('sources', [], ConfigurationTarget.Global);
 
-        const builtInCommands = [
-            { extension: '.sh', command: 'bash', builtIn: true },
-            { extension: '.ps1', command: 'powershell -File', builtIn: true },
+        const builtInPatterns = [
+            { pattern: '*.sh', command: 'bash', builtIn: true },
+            { pattern: '*.ps1', command: 'powershell -File', builtIn: true },
         ];
-        await config.update('fileExtensions', builtInCommands, ConfigurationTarget.Global);
+        await config.update('fileExtensions', builtInPatterns, ConfigurationTarget.Global);
         await config.update('viewType', 'card', ConfigurationTarget.Global);
 
         // Mark this environment as initialized
@@ -252,7 +252,7 @@ export async function activate(context: vscode.ExtensionContext) {
                 action: () => sourceConfigProvider.show()
             },
             {
-                label: "Manage File Extensions",
+                label: "Manage Commands",
                 description: "Configure file extension commands",
                 action: () => fileExtensionConfigProvider.show()
             }
@@ -298,6 +298,30 @@ export async function activate(context: vscode.ExtensionContext) {
 
     // Add the listener to subscriptions for cleanup
     context.subscriptions.push(workspaceFoldersChangeListener);
+
+    // In the activate function, after initialization check
+    if (isInitialized) {
+        // Migrate old extension format to new pattern format
+        const config = vscode.workspace.getConfiguration('scriptsRunner');
+        const existingConfig = config.get<any[]>('fileExtensions', []);
+
+        const needsMigration = existingConfig.some(c => 'extension' in c && !('pattern' in c));
+
+        if (needsMigration) {
+            const migratedConfig = existingConfig.map(c => {
+                if ('extension' in c && !('pattern' in c)) {
+                    return {
+                        pattern: `*${c.extension}`,
+                        command: c.command,
+                        builtIn: c.builtIn
+                    };
+                }
+                return c;
+            });
+
+            await config.update('fileExtensions', migratedConfig, ConfigurationTarget.Global);
+        }
+    }
 
     context.subscriptions.push(
         refreshCommand,
