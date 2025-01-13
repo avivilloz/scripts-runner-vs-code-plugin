@@ -71,7 +71,8 @@ export class FileExtensionConfigProvider {
                         this.panel?.webview.postMessage({
                             command: 'updateExtensions',
                             extensions: extensions,
-                            savedExtension: message.config.pattern
+                            savedExtension: message.config.pattern,
+                            itemId: message.itemId
                         });
 
                         vscode.window.showInformationMessage('File extension configuration saved');
@@ -92,7 +93,8 @@ export class FileExtensionConfigProvider {
                         this.panel?.webview.postMessage({
                             command: 'updateExtensions',
                             extensions: updatedExtensions,
-                            removedExtension: message.pattern
+                            removedExtension: message.pattern,
+                            itemId: message.itemId
                         });
 
                         vscode.window.showInformationMessage('File extension configuration removed');
@@ -105,15 +107,29 @@ export class FileExtensionConfigProvider {
                     try {
                         const updatedExtensions = [...extensions];
 
-                        for (const newConfig of message.configs) {
-                            const existingIndex = updatedExtensions.findIndex(
-                                e => e.pattern === newConfig.pattern
-                            );
+                        // Handle updates to existing patterns
+                        if (message.updates) {
+                            for (const update of message.updates) {
+                                const existingIndex = updatedExtensions.findIndex(
+                                    e => e.pattern === update.originalPattern
+                                );
+                                if (existingIndex >= 0) {
+                                    updatedExtensions[existingIndex] = update.newConfig;
+                                }
+                            }
+                        }
 
-                            if (existingIndex >= 0) {
-                                updatedExtensions[existingIndex] = newConfig;
-                            } else {
-                                updatedExtensions.push(newConfig);
+                        // Handle new patterns
+                        if (message.configs) {
+                            for (const newConfig of message.configs) {
+                                const existingIndex = updatedExtensions.findIndex(
+                                    e => e.pattern === newConfig.pattern
+                                );
+                                if (existingIndex >= 0) {
+                                    updatedExtensions[existingIndex] = newConfig;
+                                } else {
+                                    updatedExtensions.push(newConfig);
+                                }
                             }
                         }
 
@@ -289,9 +305,11 @@ export class FileExtensionConfigProvider {
                 const addNewBtn = document.getElementById('addNewBtn');
                 const saveAllBtn = document.getElementById('saveAllBtn');
                 let editModeCount = 0;
-                let draggedItem = null;
+                const editStates = new Map();
+                const originalPatterns = new Map();
 
                 function updateSaveAllButton() {
+                    console.log('Edit mode count:', editModeCount);
                     saveAllBtn.style.display = editModeCount > 0 ? 'block' : 'none';
                 }
 
@@ -333,7 +351,15 @@ export class FileExtensionConfigProvider {
                     removeBtn.className = 'secondary';
                     removeBtn.style.display = !config?.builtIn ? 'block' : 'none';
 
+                    // Generate unique ID for the item
+                    const itemId = Date.now().toString() + Math.random();
+                    item.dataset.itemId = itemId;
+
                     if (isNew || config?.editing) {
+                        editStates.set(itemId, true);
+                        if (!isNew) {
+                            originalPatterns.set(itemId, config.pattern);
+                        }
                         editModeCount++;
                         updateSaveAllButton();
                     }
@@ -358,15 +384,9 @@ export class FileExtensionConfigProvider {
                             config: newConfig,
                             originalValues: isNew ? null : {
                                 pattern: config.pattern
-                            }
+                            },
+                            itemId: itemId  // Send the itemId with the save message
                         });
-
-                        patternInput.disabled = true;
-                        commandInput.disabled = true;
-                        saveBtn.style.display = 'none';
-                        editBtn.style.display = 'block';
-                        editModeCount--;
-                        updateSaveAllButton();
                     });
 
                     editBtn.addEventListener('click', () => {
@@ -374,20 +394,30 @@ export class FileExtensionConfigProvider {
                         commandInput.disabled = false;
                         saveBtn.style.display = 'block';
                         editBtn.style.display = 'none';
+                        editStates.set(itemId, true);
+                        originalPatterns.set(itemId, patternInput.value);
                         editModeCount++;
                         updateSaveAllButton();
                     });
 
                     removeBtn.addEventListener('click', () => {
+                        const pattern = patternInput.value;
+                        
+                        if (isNew && !pattern) {
+                            if (editStates.has(itemId)) {
+                                editStates.delete(itemId);
+                                editModeCount--;
+                                updateSaveAllButton();
+                            }
+                            item.remove();
+                            return;
+                        }
+
                         vscode.postMessage({ 
                             command: 'removeExtension',
-                            pattern: patternInput.value
+                            pattern: pattern,
+                            itemId: itemId
                         });
-                        item.remove();
-                        if (!patternInput.disabled) {
-                            editModeCount--;
-                            updateSaveAllButton();
-                        }
                     });
 
                     item.appendChild(dragHandle);
@@ -490,41 +520,38 @@ export class FileExtensionConfigProvider {
                 saveAllBtn.addEventListener('click', () => {
                     const items = extensionsList.querySelectorAll('.extension-item');
                     const configs = [];
+                    const updates = [];
                     
                     items.forEach(item => {
                         const patternInput = item.querySelector('.extension-field');
                         const commandInput = item.querySelector('.command-field');
+                        const itemId = item.dataset.itemId;
                         
                         if (!patternInput.disabled && patternInput.value && commandInput.value) {
-                            configs.push({
+                            const config = {
                                 pattern: patternInput.value,
                                 command: commandInput.value,
                                 builtIn: item.classList.contains('built-in')
-                            });
+                            };
+
+                            // If this is an edit of an existing pattern, include the original pattern
+                            if (originalPatterns.has(itemId)) {
+                                updates.push({
+                                    originalPattern: originalPatterns.get(itemId),
+                                    newConfig: config
+                                });
+                            } else {
+                                configs.push(config);
+                            }
                         }
                     });
 
-                    if (configs.length > 0) {
+                    if (configs.length > 0 || updates.length > 0) {
                         vscode.postMessage({
                             command: 'saveAllExtensions',
-                            configs: configs
+                            configs: configs,
+                            updates: updates
                         });
-
-                        items.forEach(item => {
-                            const patternInput = item.querySelector('.extension-field');
-                            const commandInput = item.querySelector('.command-field');
-                            const saveBtn = item.querySelector('button[type="submit"]');
-                            const editBtn = item.querySelector('button.secondary');
-
-                            if (!patternInput.disabled) {
-                                patternInput.disabled = true;
-                                commandInput.disabled = true;
-                                saveBtn.style.display = 'none';
-                                editBtn.style.display = 'block';
-                                editModeCount--;
-                            }
-                        });
-                        updateSaveAllButton();
                     }
                 });
 
@@ -532,13 +559,12 @@ export class FileExtensionConfigProvider {
                     const message = event.data;
                     switch (message.command) {
                         case 'updateExtensions':
-                            extensions = message.extensions;
-                            
                             if (message.savedExtension) {
+                                // Only update the saved item
                                 const items = extensionsList.querySelectorAll('.extension-item');
                                 items.forEach(item => {
-                                    const patternInput = item.querySelector('.extension-field');
-                                    if (patternInput.value === message.savedExtension) {
+                                    if (item.dataset.itemId === message.itemId) {
+                                        const patternInput = item.querySelector('.extension-field');
                                         const commandInput = item.querySelector('.command-field');
                                         const saveBtn = item.querySelector('button[type="submit"]');
                                         const editBtn = item.querySelector('button.secondary');
@@ -547,24 +573,43 @@ export class FileExtensionConfigProvider {
                                         commandInput.disabled = true;
                                         saveBtn.style.display = 'none';
                                         editBtn.style.display = 'block';
-                                        editModeCount--;
-                                        updateSaveAllButton();
-                                    }
-                                });
-                            } else if (message.removedExtension) {
-                                const items = extensionsList.querySelectorAll('.extension-item');
-                                items.forEach(item => {
-                                    const patternInput = item.querySelector('.extension-field');
-                                    if (patternInput.value === message.removedExtension) {
-                                        item.remove();
-                                        if (!patternInput.disabled) {
+
+                                        if (editStates.has(item.dataset.itemId)) {
+                                            editStates.delete(item.dataset.itemId);
                                             editModeCount--;
                                             updateSaveAllButton();
                                         }
                                     }
                                 });
+                                extensions = message.extensions;
+                            } else if (message.removedExtension) {
+                                const items = extensionsList.querySelectorAll('.extension-item');
+                                items.forEach(item => {
+                                    if (item.dataset.itemId === message.itemId) {
+                                        if (editStates.has(item.dataset.itemId)) {
+                                            editStates.delete(item.dataset.itemId);
+                                            editModeCount--;
+                                            updateSaveAllButton();
+                                        }
+                                        item.remove();
+                                    }
+                                });
+                                extensions = message.extensions;
                             } else {
-                                renderExtensions();
+                                // For full updates, preserve edit states
+                                const currentEditStates = new Map(editStates);
+                                extensions = message.extensions;
+                                extensionsList.innerHTML = '';
+                                extensions.forEach(config => {
+                                    const item = createExtensionItem(config);
+                                    if (currentEditStates.has(item.dataset.itemId)) {
+                                        const inputs = item.querySelectorAll('input');
+                                        inputs.forEach(input => input.disabled = false);
+                                        item.querySelector('button[type="submit"]').style.display = 'block';
+                                        item.querySelector('button.secondary').style.display = 'none';
+                                    }
+                                    extensionsList.appendChild(item);
+                                });
                             }
                             break;
                     }
