@@ -75,9 +75,9 @@ export class FileExtensionConfigProvider {
                             itemId: message.itemId
                         });
 
-                        vscode.window.showInformationMessage('File extension configuration saved');
+                        vscode.window.showInformationMessage('Command configuration saved');
                     } catch (error) {
-                        vscode.window.showErrorMessage('Failed to save file extension configuration');
+                        vscode.window.showErrorMessage('Failed to save command configuration');
                     }
                     break;
 
@@ -97,9 +97,9 @@ export class FileExtensionConfigProvider {
                             itemId: message.itemId
                         });
 
-                        vscode.window.showInformationMessage('File extension configuration removed');
+                        vscode.window.showInformationMessage('Command configuration removed');
                     } catch (error) {
-                        vscode.window.showErrorMessage('Failed to remove file extension configuration');
+                        vscode.window.showErrorMessage('Failed to remove command configuration');
                     }
                     break;
 
@@ -141,9 +141,9 @@ export class FileExtensionConfigProvider {
                             extensions: updatedExtensions
                         });
 
-                        vscode.window.showInformationMessage('All file extension configurations saved');
+                        vscode.window.showInformationMessage('All command configurations saved');
                     } catch (error) {
-                        vscode.window.showErrorMessage('Failed to save file extension configurations');
+                        vscode.window.showErrorMessage('Failed to save command configurations');
                     }
                     break;
 

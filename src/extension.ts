@@ -253,7 +253,7 @@ export async function activate(context: vscode.ExtensionContext) {
             },
             {
                 label: "Manage Commands",
-                description: "Configure file extension commands",
+                description: "Configure command configurations",
                 action: () => fileExtensionConfigProvider.show()
             }
         ];
