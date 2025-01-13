@@ -183,7 +183,7 @@
                     "markdownDescription": "Script sources configuration. Click [Manage Sources](command:scripts-runner.configureSource) to open the configuration UI.",
                     "scope": "machine-overridable"
                 },
-                "scriptsRunner.fileExtensions": {
+                "scriptsRunner.commands": {
                     "type": "array",
                     "items": {
                         "type": "object",
@@ -211,7 +211,7 @@
                     "description": "File pattern command mappings",
                     "editPresentation": "multilineJson",
                     "order": 2,
-                    "markdownDescription": "File pattern command mappings. Click [Manage Commands](command:scripts-runner.configureFileExtensions) to open the configuration UI.",
+                    "markdownDescription": "File pattern command mappings. Click [Manage Commands](command:scripts-runner.configureCommands) to open the configuration UI.",
                     "scope": "machine-overridable"
                 },
                 "scriptsRunner.viewType": {

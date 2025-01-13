@@ -7,8 +7,8 @@ export interface FilePattern {
     builtIn?: boolean;
 }
 
-export class FileExtensionConfigProvider {
-    public static readonly viewType = 'scriptsRunner.configureFileExtensions';
+export class CommandConfigProvider {
+    public static readonly viewType = 'scriptsRunner.configureCommands';
     private panel: vscode.WebviewPanel | undefined;
 
     constructor(
@@ -23,7 +23,7 @@ export class FileExtensionConfigProvider {
         }
 
         this.panel = vscode.window.createWebviewPanel(
-            FileExtensionConfigProvider.viewType,
+            CommandConfigProvider.viewType,
             'Configure File Patterns',
             vscode.ViewColumn.One,
             {
@@ -40,7 +40,7 @@ export class FileExtensionConfigProvider {
 
         this.panel.webview.onDidReceiveMessage(async message => {
             const config = vscode.workspace.getConfiguration('scriptsRunner');
-            const extensions = config.get<FilePattern[]>('fileExtensions', []);
+            const extensions = config.get<FilePattern[]>('commands', []);
 
             switch (message.command) {
                 case 'saveExtension':
@@ -168,7 +168,7 @@ export class FileExtensionConfigProvider {
 
     private getWebviewContent() {
         const config = vscode.workspace.getConfiguration('scriptsRunner');
-        const extensions = config.get<FilePattern[]>('fileExtensions', []);
+        const extensions = config.get<FilePattern[]>('commands', []);
         const extensionsJson = JSON.stringify(extensions);
 
         return `<!DOCTYPE html>
@@ -623,7 +623,7 @@ export class FileExtensionConfigProvider {
 
     private async updateConfig(patterns: FilePattern[]): Promise<void> {
         const config = vscode.workspace.getConfiguration('scriptsRunner');
-        await config.update('fileExtensions', patterns, ConfigurationTarget.Global);
+        await config.update('commands', patterns, ConfigurationTarget.Global);
     }
 
     private async validatePattern(pattern: FilePattern): Promise<void> {

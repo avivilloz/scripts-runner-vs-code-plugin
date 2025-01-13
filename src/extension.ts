@@ -3,7 +3,7 @@ import { ScriptsSourceService } from './services/scriptsSourceService';  // Upda
 import { ScriptService } from './services/scriptService';
 import { ScriptsProvider } from './providers/scriptsProvider';
 import { SourceConfigProvider } from './services/sourceConfigProvider';
-import { FileExtensionConfigProvider } from './services/fileExtensionConfigProvider';
+import { CommandConfigProvider } from './services/commandConfigProvider';
 import * as path from 'path';
 import * as os from 'os';
 import { workspace } from 'vscode';
@@ -47,7 +47,7 @@ export async function activate(context: vscode.ExtensionContext) {
 
         // Clear any existing settings
         await config.update('sources', undefined, ConfigurationTarget.Global);
-        await config.update('fileExtensions', undefined, ConfigurationTarget.Global);
+        await config.update('commands', undefined, ConfigurationTarget.Global);
         await config.update('viewType', undefined, ConfigurationTarget.Global);
 
         // Initialize with defaults
@@ -57,7 +57,7 @@ export async function activate(context: vscode.ExtensionContext) {
             { pattern: '*.sh', command: 'bash', builtIn: true },
             { pattern: '*.ps1', command: 'powershell -File', builtIn: true },
         ];
-        await config.update('fileExtensions', builtInPatterns, ConfigurationTarget.Global);
+        await config.update('commands', builtInPatterns, ConfigurationTarget.Global);
         await config.update('viewType', 'card', ConfigurationTarget.Global);
 
         // Mark this environment as initialized
@@ -68,8 +68,8 @@ export async function activate(context: vscode.ExtensionContext) {
     if (config.inspect('sources')?.workspaceValue !== undefined) {
         await config.update('sources', undefined, ConfigurationTarget.Workspace);
     }
-    if (config.inspect('fileExtensions')?.workspaceValue !== undefined) {
-        await config.update('fileExtensions', undefined, ConfigurationTarget.Workspace);
+    if (config.inspect('commands')?.workspaceValue !== undefined) {
+        await config.update('commands', undefined, ConfigurationTarget.Workspace);
     }
     if (config.inspect('viewType')?.workspaceValue !== undefined) {
         await config.update('viewType', undefined, ConfigurationTarget.Workspace);
@@ -113,7 +113,7 @@ export async function activate(context: vscode.ExtensionContext) {
         }
     );
 
-    const fileExtensionConfigProvider = new FileExtensionConfigProvider(
+    const commandConfigProvider = new CommandConfigProvider(
         context,
         async () => {
             await scriptsProvider.refresh();
@@ -254,7 +254,7 @@ export async function activate(context: vscode.ExtensionContext) {
             {
                 label: "Manage Commands",
                 description: "Configure command configurations",
-                action: () => fileExtensionConfigProvider.show()
+                action: () => commandConfigProvider.show()
             }
         ];
 
@@ -303,7 +303,7 @@ export async function activate(context: vscode.ExtensionContext) {
     if (isInitialized) {
         // Migrate old extension format to new pattern format
         const config = vscode.workspace.getConfiguration('scriptsRunner');
-        const existingConfig = config.get<any[]>('fileExtensions', []);
+        const existingConfig = config.get<any[]>('commands', []);
 
         const needsMigration = existingConfig.some(c => 'extension' in c && !('pattern' in c));
 
@@ -319,7 +319,7 @@ export async function activate(context: vscode.ExtensionContext) {
                 return c;
             });
 
-            await config.update('fileExtensions', migratedConfig, ConfigurationTarget.Global);
+            await config.update('commands', migratedConfig, ConfigurationTarget.Global);
         }
     }
 

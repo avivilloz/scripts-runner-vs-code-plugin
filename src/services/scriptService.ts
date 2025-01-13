@@ -130,7 +130,7 @@ export class ScriptService {
         }
 
         const config = vscode.workspace.getConfiguration('scriptsRunner');
-        const patterns = config.get<Array<{ pattern: string; command: string }>>('fileExtensions', []);
+        const patterns = config.get<Array<{ pattern: string; command: string }>>('commands', []);
 
         // Find first matching pattern
         const matchingPattern = patterns.find(p => {
