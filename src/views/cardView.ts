@@ -22,13 +22,21 @@ export class CardView {
         const messageHandler = this.webviewView.webview.onDidReceiveMessage(message => {
             switch (message.command) {
                 case 'executeScript':
-                    const script = scripts.find(s => s.path === message.scriptPath);
+                    const script = scripts.find(s =>
+                        s.path === message.scriptPath &&
+                        s.sourceName === message.sourceName &&
+                        s.metadata.name === message.scriptName
+                    );
                     if (script) {
                         this.onScriptSelected(script);
                     }
                     break;
                 case 'togglePin':
-                    const scriptToToggle = scripts.find(s => s.path === message.scriptPath);
+                    const scriptToToggle = scripts.find(s =>
+                        s.path === message.scriptPath &&
+                        s.sourceName === message.sourceName &&
+                        s.metadata.name === message.scriptName
+                    );
                     if (scriptToToggle) {
                         this.scriptsProvider.togglePin(scriptToToggle);
                     }
@@ -234,7 +242,7 @@ export class CardView {
             }
         `;
 
-        this.webviewView.webview.html = `
+        const html = `
             <!DOCTYPE html>
             <html>
             <head>
@@ -339,7 +347,9 @@ export class CardView {
                 <div class="grid">
                     ${scripts.map(script => `
                         <div class="card" 
-                             data-script-path="${script.path}">
+                             data-script-path="${script.path}"
+                             data-source-name="${script.sourceName}"
+                             data-script-name="${script.metadata.name}">
                             <div class="card-title">${script.metadata.name}</div>
                             ${script.metadata.category ?
                 `<div class="card-category">${script.metadata.category}</div>` :
@@ -360,11 +370,15 @@ export class CardView {
                             ` : ''}
                             <button class="link-btn" 
                                     data-script-path="${script.path}"
+                                    data-source-name="${script.sourceName}"
+                                    data-script-name="${script.metadata.name}"
                                     onclick="handleLinkClick(event)">
                                 <i class="codicon codicon-link"></i>
                             </button>
                             <button class="pin-btn ${this.scriptsProvider.isPinned(script) ? 'active' : ''}" 
                                     data-script-path="${script.path}"
+                                    data-source-name="${script.sourceName}"
+                                    data-script-name="${script.metadata.name}"
                                     onclick="handlePinClick(event)">
                                 <i class="codicon ${this.scriptsProvider.isPinned(script) ? 'codicon-pinned-full' : 'codicon-pinned-empty'}"></i>
                             </button>
@@ -379,55 +393,52 @@ export class CardView {
                         event.preventDefault();
                         event.stopPropagation();
                         
-                        const button = event.target.closest('.pin-btn');
+                        const button = event.currentTarget;
                         const scriptPath = button.dataset.scriptPath;
+                        const sourceName = button.dataset.sourceName;
+                        const scriptName = button.dataset.scriptName;
                         
-                        console.log('Pin clicked:', scriptPath);
+                        console.log('Pin clicked for script:', { scriptPath, sourceName, scriptName });
                         vscode.postMessage({
                             command: 'togglePin',
-                            scriptPath: scriptPath
+                            scriptPath,
+                            sourceName,
+                            scriptName
                         });
                     }
 
                     function handleLinkClick(event) {
-                        console.log('Link click handler called');
-                        console.log('Event target:', event.target);
                         event.preventDefault();
                         event.stopPropagation();
                         
-                        const button = event.target.closest('.link-btn');
-                        console.log('Found button:', button);
-                        if (!button) {
-                            console.log('No link button found in hierarchy');
-                            return;
-                        }
-                        
+                        const button = event.currentTarget;
                         const scriptPath = button.dataset.scriptPath;
-                        console.log('Script path:', scriptPath);
+                        const sourceName = button.dataset.sourceName;
+                        const scriptName = button.dataset.scriptName;
                         
+                        console.log('Link clicked for script:', { scriptPath, sourceName, scriptName });
                         vscode.postMessage({
                             command: 'openScript',
-                            scriptPath: scriptPath
+                            scriptPath,
+                            sourceName,
+                            scriptName
                         });
                     }
 
-                    // Update the card click handler to also log events
                     document.querySelectorAll('.card').forEach(card => {
                         card.addEventListener('click', (event) => {
-                            console.log('Card clicked, target:', event.target);
-                            console.log('Is pin button?', !!event.target.closest('.pin-btn'));
-                            console.log('Is link button?', !!event.target.closest('.link-btn'));
-                            
-                            // Only handle clicks if they're not on the pin button or link button
-                            if (!event.target.closest('.pin-btn') && !event.target.closest('.link-btn')) {
+                            if (!event.target.closest('button')) {
                                 const scriptPath = card.dataset.scriptPath;
-                                console.log('Executing script:', scriptPath);
+                                const sourceName = card.dataset.sourceName;
+                                const scriptName = card.dataset.scriptName;
+                                
+                                console.log('Card clicked, executing script:', { scriptPath, sourceName, scriptName });
                                 vscode.postMessage({
                                     command: 'executeScript',
-                                    scriptPath: scriptPath
+                                    scriptPath,
+                                    sourceName,
+                                    scriptName
                                 });
-                            } else {
-                                console.log('Click was on a button, not executing script');
                             }
                         });
                     });
@@ -435,6 +446,8 @@ export class CardView {
             </body>
             </html>
         `;
+
+        this.webviewView.webview.html = html;
     }
 
     private getTooltipContent(script: Script): string {

@@ -189,12 +189,17 @@ export class ScriptsProvider implements vscode.TreeDataProvider<Script>, vscode.
     // Add methods to handle favorites
     public togglePin(script: Script): void {
         const scriptId = this.getScriptId(script);
+        console.log('Toggling pin for script:', scriptId);
+
         if (this.pinnedScripts.has(scriptId)) {
+            console.log('Unpinning script:', scriptId);
             this.pinnedScripts.delete(scriptId);
         } else {
+            console.log('Pinning script:', scriptId);
             this.pinnedScripts.add(scriptId);
         }
-        // Change from globalState to workspaceState
+
+        // Update storage
         this.context.workspaceState.update('pinnedScripts', Array.from(this.pinnedScripts));
         this.refresh();
     }
@@ -204,7 +209,8 @@ export class ScriptsProvider implements vscode.TreeDataProvider<Script>, vscode.
     }
 
     private getScriptId(script: Script): string {
-        return `${script.sourceName}:${script.path}`;
+        // Ensure unique identification even without category/tags
+        return `${script.sourceName}:${script.path}:${script.metadata.name}`;
     }
 
     public setShowPinnedOnly(show: boolean): void {
@@ -220,7 +226,7 @@ export class ScriptsProvider implements vscode.TreeDataProvider<Script>, vscode.
         let filteredScripts = this.scripts;
 
         if (this.showPinnedOnly) {
-            filteredScripts = filteredScripts.filter(script => 
+            filteredScripts = filteredScripts.filter(script =>
                 this.pinnedScripts.has(this.getScriptId(script))
             );
         }
