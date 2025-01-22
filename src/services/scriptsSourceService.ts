@@ -17,7 +17,6 @@ interface GitRepoConfig extends BaseConfig {
     type: 'git';
     url: string;
     branch?: string;
-    scriptsPath?: string;
 }
 
 interface LocalPathConfig extends BaseConfig {
@@ -100,12 +99,6 @@ export class ScriptsSourceService {
             await repoGit.checkout(targetBranch);
             console.log('Checked out branch:', targetBranch);
 
-            // Ensure scripts directory exists
-            const scriptsPath = this.getScriptsPath(config, repoPath);
-            if (!fs.existsSync(scriptsPath)) {
-                fs.mkdirSync(scriptsPath, { recursive: true });
-            }
-
             console.log('Repository synced successfully:', config.name || config.url);
         } catch (error) {
             console.error(`Failed to sync repository ${config.url}:`, error);
@@ -140,16 +133,16 @@ export class ScriptsSourceService {
                         sourceName: source.name || 'Built-in'
                     };
                 }
-                
+
                 if (source.type === 'git') {
                     const sourcePath = path.join(this.getRepoPath(source.url));
                     return {
-                        path: path.join(sourcePath, source.scriptsPath || 'scripts'),
+                        path: sourcePath,
                         sourcePath: sourcePath,
                         sourceName: source.name || 'Unknown'
                     };
                 }
-                
+
                 // For local sources, both path and sourcePath are the same
                 return {
                     path: source.path,
@@ -159,9 +152,9 @@ export class ScriptsSourceService {
             });
     }
 
-    // Changed method signature to use GitRepoConfig instead of non-existent BaseConfig
-    private getScriptsPath(config: GitRepoConfig, basePath: string): string {
-        return path.join(basePath, config.scriptsPath || 'scripts');
+    private getScriptsPath(basePath: string): string {
+        // Always use the root directory
+        return basePath;
     }
 
     async initializeBuiltInSources(): Promise<void> {
@@ -199,9 +192,9 @@ export class ScriptsSourceService {
 
         // Check if workspace source already exists
         const workspaceSourceExists = sources.some(
-            source => source.type === 'local' && 
-                     source.path === workspacePath && 
-                     source.isWorkspace === true
+            source => source.type === 'local' &&
+                source.path === workspacePath &&
+                source.isWorkspace === true
         );
 
         if (!workspaceSourceExists) {
@@ -222,9 +215,9 @@ export class ScriptsSourceService {
         const sources = getGlobalConfiguration<ScriptsSourceConfig[]>('sources', []);
 
         const updatedSources = sources.filter(
-            source => !(source.type === 'local' && 
-                       source.path === workspacePath && 
-                       source.isWorkspace === true)
+            source => !(source.type === 'local' &&
+                source.path === workspacePath &&
+                source.isWorkspace === true)
         );
 
         if (sources.length !== updatedSources.length) {
@@ -235,12 +228,12 @@ export class ScriptsSourceService {
     // Add this method to handle workspace changes
     public async handleWorkspaceChange(): Promise<void> {
         const workspaceFolders = vscode.workspace.workspaceFolders;
-        
+
         // Get current workspace sources
         const config = vscode.workspace.getConfiguration('scriptsRunner');
         const sources = config.get<ScriptsSourceConfig[]>('sources', []);
         const workspaceSources = sources.filter(source => source.isWorkspace === true);
-        
+
         // Remove sources for closed workspaces
         for (const source of workspaceSources) {
             if (source.type === 'local' && !workspaceFolders?.some(folder => folder.uri.fsPath === source.path)) {

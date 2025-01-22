@@ -6,9 +6,9 @@ import * as vscode from 'vscode';
 export function getUserScriptsPath(): string {
     if (vscode.env.remoteName) {
         // For remote environments (WSL/SSH), use workspace storage
-        return path.join(os.homedir(), '.local', 'share', 'scripts-runner', 'scripts');
+        return path.join(os.homedir(), '.local', 'share', 'scripts-runner');
     }
-    return path.join(os.homedir(), '.scripts-runner', 'scripts');
+    return path.join(os.homedir(), '.scripts-runner');
 }
 
 export function getUserSourcesPath(): string {

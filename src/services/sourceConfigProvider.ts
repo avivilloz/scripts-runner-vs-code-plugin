@@ -238,11 +238,6 @@ export class SourceConfigProvider {
                             <label for="branch">Branch (optional)</label>
                             <input type="text" id="branch" placeholder="main">
                         </div>
-
-                        <div class="form-group">
-                            <label for="scriptsPath">Scripts Path (optional)</label>
-                            <input type="text" id="scriptsPath" placeholder="scripts">
-                        </div>
                     </div>
 
                     <div id="localFields" class="hidden">
@@ -329,18 +324,14 @@ export class SourceConfigProvider {
                     if (sourceType.value === 'git') {
                         source.url = document.getElementById('url').value;
                         const branch = document.getElementById('branch').value;
-                        const scriptsPath = document.getElementById('scriptsPath').value;
                         if (branch) source.branch = branch;
-                        if (scriptsPath) source.scriptsPath = scriptsPath;
                     } else {
                         source.path = document.getElementById('path').value;
                     }
 
                     vscode.postMessage({ command: 'addSource', source });
                     
-                    // Clear the form instead of hiding it
                     form.reset();
-                    // Reset source type related fields visibility
                     if (sourceType.value === 'git') {
                         gitFields.classList.remove('hidden');
                         localFields.classList.add('hidden');
@@ -441,7 +432,7 @@ export class SourceConfigProvider {
             const sources = getGlobalConfiguration<any[]>('sources', []);
             sources.push(source);
             await updateGlobalConfiguration('sources', sources);
-            
+
             await this.onSourceAdded();
             this.panel?.webview.postMessage({
                 command: 'updateSources',
