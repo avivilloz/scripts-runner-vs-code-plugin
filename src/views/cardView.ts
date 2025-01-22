@@ -10,14 +10,14 @@ export class CardView {
         private context: vscode.ExtensionContext,
         private onScriptSelected: (script: Script) => void,
         private scriptsProvider: any
-    ) {}
+    ) { }
 
     public show(scripts: Script[], webviewView: vscode.WebviewView) {
         // Clean up old handlers
         this.dispose();
-        
+
         this.webviewView = webviewView;
-        
+
         // Add new message handler
         const messageHandler = this.webviewView.webview.onDidReceiveMessage(message => {
             switch (message.command) {
@@ -41,7 +41,7 @@ export class CardView {
                     console.error(`Unknown command: ${message.command}`);
             }
         });
-        
+
         this.disposables.push(messageHandler);
         this.updateContent(scripts);
     }
@@ -122,59 +122,115 @@ export class CardView {
                 -webkit-user-select: none;
                 -ms-user-select: none;
             }
-            .pin-btn {
+            .pin-btn, .link-btn {
                 position: absolute;
                 bottom: 12px;
-                right: 12px;
                 background: none;
                 border: none;
                 padding: 4px;
                 cursor: pointer;
-                color: var(--vscode-descriptionForeground);
-                opacity: 0.6;
+                color: var(--vscode-foreground);
+                opacity: 0.7;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                width: 24px;
+                height: 24px;
                 z-index: 10;
+                pointer-events: all;
             }
-            .pin-btn .codicon {
-                font-size: 22px !important;
+            .pin-btn {
+                right: 12px;
             }
-            .pin-btn:hover {
+            .link-btn {
+                right: 40px;
+            }
+            .pin-btn:hover, .link-btn:hover {
                 opacity: 1;
             }
             .pin-btn.active {
-                color: var(--vscode-textLink-activeForeground);
+                color: var(--vscode-inputValidation-infoForeground);
                 opacity: 1;
             }
+            .card {
+                position: relative;
+                padding: 12px;
+                background: var(--vscode-editor-background);
+                border: 1px solid var(--vscode-input-border);
+                border-radius: 6px;
+                cursor: pointer;
+                display: flex;
+                flex-direction: column;
+                gap: 8px;
+                min-height: 120px;
+            }
             .card-title {
+                padding-right: 70px;
+                margin-bottom: 8px;
+                font-weight: 600;
+                font-size: 14px;
+                line-height: 1.4;
+                word-break: break-word;
+            }
+            .card-category {
+                position: absolute;
+                top: 12px;
+                right: 40px;
+                background: var(--vscode-badge-background);
+                color: var(--vscode-badge-foreground);
+                padding: 2px 6px;
+                border-radius: 3px;
+                font-size: 11px;
+                white-space: nowrap;
+            }
+            .card-meta {
+                font-size: 12px;
+                color: var(--vscode-descriptionForeground);
+                margin-bottom: 12px;
+                margin-right: 100px;
                 display: flex;
                 align-items: center;
                 gap: 4px;
             }
-            .link-btn {
-                background: none;
-                top: 2px;
-                border: none;
-                padding: 4px;
-                cursor: pointer;
-                color: var(--vscode-descriptionForeground);
-                opacity: 0.7;
-                margin-left: 4px;
-                border-radius: 4px;
-                transition: all 0.2s;
+            .meta-icon {
                 display: inline-flex;
                 align-items: center;
-                position: relative;
-                z-index: 2;
-                pointer-events: all;
+                opacity: 0.8;
             }
-            .link-btn:hover {
-                opacity: 1;
+            .card-description {
+                font-size: 13px;
+                margin-bottom: 12px;
+                flex: 1;
             }
-            .link-btn .codicon {
-                font-size: 18px;
+            .card-tags {
+                display: flex;
+                flex-wrap: wrap;
+                gap: 6px;
+                margin-top: auto;
+            }
+            .tag {
+                border: 1px solid var(--vscode-focusBorder);
+                background: transparent;
+                color: var(--vscode-foreground);
+                padding: 2px 6px;
+                border-radius: 4px;
+                font-size: 11px;
+            }
+            .tooltip {
+                position: absolute;
+                background: var(--vscode-editor-background);
+                border: 1px solid var(--vscode-input-border);
+                padding: 8px;
+                border-radius: 4px;
+                z-index: 1000;
+                max-width: 300px;
+                display: none;
+            }
+            .card * {
                 pointer-events: none;
             }
-            .card > * {
-                pointer-events: auto;
+            .card button {
+                pointer-events: all;
             }
         `;
 
@@ -277,21 +333,6 @@ export class CardView {
                     .card > * {
                         pointer-events: none;
                     }
-                    .pin-btn {
-                        pointer-events: all;
-                        position: absolute;
-                        bottom: 12px;
-                        right: 12px;
-                        background: none;
-                        border: none;
-                        padding: 4px;
-                        cursor: pointer;
-                        color: var(--vscode-descriptionForeground);
-                        opacity: 0.6;
-                        z-index: 10;
-                        user-select: none;
-                        -webkit-user-select: none;
-                    }
                 </style>
             </head>
             <body>
@@ -299,17 +340,10 @@ export class CardView {
                     ${scripts.map(script => `
                         <div class="card" 
                              data-script-path="${script.path}">
-                            <div class="card-title">
-                                ${script.metadata.name}
-                                <button class="link-btn" 
-                                        data-script-path="${script.path}"
-                                        onclick="handleLinkClick(event)">
-                                    <i class="codicon codicon-link"></i>
-                                </button>
-                            </div>
-                            ${script.metadata.category ? 
-                                `<div class="card-category">${script.metadata.category}</div>` : 
-                                ''}
+                            <div class="card-title">${script.metadata.name}</div>
+                            ${script.metadata.category ?
+                `<div class="card-category">${script.metadata.category}</div>` :
+                ''}
                             <div class="card-meta">
                                 <i class="codicon codicon-source-control"></i>
                                 ${script.sourceName}
@@ -324,6 +358,11 @@ export class CardView {
                                     `).join('')}
                                 </div>
                             ` : ''}
+                            <button class="link-btn" 
+                                    data-script-path="${script.path}"
+                                    onclick="handleLinkClick(event)">
+                                <i class="codicon codicon-link"></i>
+                            </button>
                             <button class="pin-btn ${this.scriptsProvider.isPinned(script) ? 'active' : ''}" 
                                     data-script-path="${script.path}"
                                     onclick="handlePinClick(event)">
@@ -401,11 +440,11 @@ export class CardView {
     private getTooltipContent(script: Script): string {
         let content = `<h3>${script.metadata.name}</h3>`;
         content += `<p>${script.metadata.description}</p>`;
-        
+
         if (script.metadata.parameters?.length) {
             content += '<h4>Parameters:</h4><ul>';
             script.metadata.parameters.forEach(param => {
-                const defaultValue = param.default !== undefined ? 
+                const defaultValue = param.default !== undefined ?
                     ` (default: ${param.default})` : '';
                 content += `<li><b>${param.name}</b>: ${param.description}${defaultValue}</li>`;
             });
