@@ -268,18 +268,18 @@ export class ScriptService {
             let envSetup = '';
             if (isWindows) {
                 envSetup = Object.entries(env)
-                    .map(([key, value]) => `$env:${key}="${value}";`)
-                    .join(' ');
+                    .map(([key, value]) => `$env:${key}="${value.replace(/"/g, '`"')}"`)
+                    .join('; ');
             } else {
                 envSetup = Object.entries(env)
-                    .map(([key, value]) => `export ${key}="${value}";`)
-                    .join(' ');
+                    .map(([key, value]) => `export ${key}="${value.replace(/"/g, '\\"')}"`)
+                    .join('; ');
             }
 
-            const command = `${envSetup} ${scriptCommand}`;
+            const command = envSetup ? `${envSetup}; ${scriptCommand}` : scriptCommand;
 
             terminal.show();
-            terminal.sendText(command);
+            terminal.sendText(command, true);
 
             if (terminalSettings.onExit?.close) {
                 await new Promise(resolve => setTimeout(resolve, 500));
@@ -299,5 +299,13 @@ export class ScriptService {
             }
             throw error;
         }
+    }
+
+    // Helper method to properly escape command strings
+    private escapeCommand(command: string, isWindows: boolean): string {
+        if (isWindows) {
+            return command.replace(/"/g, '`"');
+        }
+        return command.replace(/"/g, '\\"');
     }
 }
