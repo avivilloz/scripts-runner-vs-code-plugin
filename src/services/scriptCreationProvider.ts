@@ -109,6 +109,7 @@ export class ScriptCreationProvider {
         };
     }) {
         // Create script files if needed
+        const createdFiles: string[] = [];
         const scriptFiles: string[] = [];
         const platformScripts: { [key: string]: string[] | string } = {};
 
@@ -131,6 +132,8 @@ export class ScriptCreationProvider {
                     if (process.platform !== 'win32') {
                         await fs.promises.chmod(filePath, '755');
                     }
+
+                    createdFiles.push(filePath);
                 }
 
                 scriptFiles.push(fileName);
@@ -171,6 +174,16 @@ export class ScriptCreationProvider {
             JSON.stringify(scriptsConfig, null, 4),
             'utf8'
         );
+
+        // Open all created files in the editor
+        for (const filePath of createdFiles) {
+            const document = await vscode.workspace.openTextDocument(filePath);
+            await vscode.window.showTextDocument(document, { preview: false });
+        }
+
+        // Also open scripts.json if it was created or modified
+        const scriptsJsonDoc = await vscode.workspace.openTextDocument(scriptsJsonPath);
+        await vscode.window.showTextDocument(scriptsJsonDoc, { preview: false });
     }
 
     private getWebviewContent() {
