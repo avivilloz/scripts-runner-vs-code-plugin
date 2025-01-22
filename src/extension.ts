@@ -42,27 +42,53 @@ export async function activate(context: vscode.ExtensionContext) {
 
     // Check if this environment has been initialized
     const isInitialized = context.globalState.get(envKey);
+    console.log('Is initialized:', isInitialized);
 
-    if (!isInitialized) {
-        console.log(`First installation detected for environment: ${envKey}`);
+    try {
+        if (!isInitialized) {
+            console.log('First installation detected, initializing settings...');
 
-        // Clear any existing settings
-        await config.update('sources', undefined, ConfigurationTarget.Global);
-        await config.update('commands', undefined, ConfigurationTarget.Global);
-        await config.update('viewType', undefined, ConfigurationTarget.Global);
+            // Initialize built-in command patterns
+            const builtInPatterns = [
+                { pattern: '*.sh', command: 'bash', builtIn: true },
+                { pattern: '*.ps1', command: 'powershell', builtIn: true },
+                { pattern: '*.cmd', command: 'cmd.exe /C', builtIn: true },
+                { pattern: '*.bat', command: 'cmd.exe /C', builtIn: true },
+                { pattern: '*.py', command: 'python', builtIn: true },
+                { pattern: '*.js', command: 'node', builtIn: true },
+                { pattern: '*.ts', command: 'ts-node', builtIn: true }
+            ];
 
-        // Initialize with defaults
-        await config.update('sources', [], ConfigurationTarget.Global);
+            // First, ensure we're working with global settings
+            await config.update('commands', undefined, ConfigurationTarget.Global);
+            await config.update('sources', undefined, ConfigurationTarget.Global);
+            await config.update('viewType', undefined, ConfigurationTarget.Global);
 
-        const builtInPatterns = [
-            { pattern: '*.sh', command: 'bash', builtIn: true },
-            { pattern: '*.ps1', command: 'powershell -File', builtIn: true },
-        ];
-        await config.update('commands', builtInPatterns, ConfigurationTarget.Global);
-        await config.update('viewType', 'card', ConfigurationTarget.Global);
+            // Then set our default values
+            console.log('Setting up built-in commands:', builtInPatterns);
+            await config.update('commands', builtInPatterns, ConfigurationTarget.Global);
+            await config.update('sources', [], ConfigurationTarget.Global);
+            await config.update('viewType', 'card', ConfigurationTarget.Global);
 
-        // Mark this environment as initialized
-        await context.globalState.update(envKey, true);
+            // Verify the settings were applied
+            const verifyConfig = vscode.workspace.getConfiguration('scriptsRunner');
+            const savedCommands = verifyConfig.get('commands');
+            console.log('Verified saved commands:', savedCommands);
+
+            // Only mark as initialized if everything succeeded
+            await context.globalState.update(envKey, true);
+            console.log('Default settings initialized successfully');
+        } else {
+            console.log('Extension already initialized for this environment');
+            // Log current settings
+            const currentCommands = config.get('commands');
+            console.log('Current commands configuration:', currentCommands);
+        }
+    } catch (error) {
+        console.error('Error during initialization:', error);
+        // Reset initialization flag if something went wrong
+        await context.globalState.update(envKey, false);
+        throw error;
     }
 
     // Always clean workspace settings if they exist
