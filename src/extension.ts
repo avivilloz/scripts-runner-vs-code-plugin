@@ -9,6 +9,7 @@ import * as os from 'os';
 import { workspace } from 'vscode';
 import { getEnvironmentPath } from './utils/pathUtils';  // We'll add this function
 import { ConfigurationTarget } from 'vscode';
+import { ScriptCreationProvider } from './services/scriptCreationProvider';
 
 interface SettingsQuickPickItem extends vscode.QuickPickItem {
     action: () => void;
@@ -323,6 +324,18 @@ export async function activate(context: vscode.ExtensionContext) {
         }
     }
 
+    let addScriptCommand = vscode.commands.registerCommand('scripts-runner.addScript', () => {
+        const scriptCreationProvider = new ScriptCreationProvider(
+            context,
+            scriptsSourceService,
+            async () => {
+                await scriptsSourceService.syncRepositories();
+                await scriptsProvider.refresh();
+            }
+        );
+        scriptCreationProvider.show();
+    });
+
     context.subscriptions.push(
         refreshCommand,
         executeCommand,
@@ -332,7 +345,8 @@ export async function activate(context: vscode.ExtensionContext) {
         settingsCommand,
         layoutCommand,
         togglePinCommand,
-        togglePinnedViewCommand
+        togglePinnedViewCommand,
+        addScriptCommand
     );
 
     console.log('Scripts Runner extension activated successfully');

@@ -64,6 +64,11 @@
                 "command": "scripts-runner.togglePinnedView",
                 "title": "Show Pinned",
                 "icon": "$(pinned)"
+            },
+            {
+                "command": "scripts-runner.addScript",
+                "title": "Add Script",
+                "icon": "$(add)"
             }
         ],
         "viewsContainers": {
@@ -127,6 +132,11 @@
                     "command": "scripts-runner.switchLayout",
                     "when": "view =~ /scriptsExplorer(List|Card)/",
                     "group": "navigation@7"
+                },
+                {
+                    "command": "scripts-runner.addScript",
+                    "when": "view =~ /scriptsExplorer(List|Card)/",
+                    "group": "navigation@0"
                 }
             ]
         },
