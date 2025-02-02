@@ -6,14 +6,26 @@ import { ScriptConfig, ScriptsConfig } from '../models/script';
 
 export class ScriptCreationProvider {
     private panel: vscode.WebviewPanel | undefined;
+    private currentWorkspace: string | undefined;
 
     constructor(
         private context: vscode.ExtensionContext,
         private scriptsSourceService: ScriptsSourceService,
         private onScriptAdded: () => Promise<void>
-    ) { }
+    ) {
+        // Get current workspace path
+        const workspaceFolders = vscode.workspace.workspaceFolders;
+        if (workspaceFolders && workspaceFolders.length > 0) {
+            this.currentWorkspace = workspaceFolders[0].uri.fsPath;
+        }
+    }
 
     public show() {
+        if (!this.currentWorkspace) {
+            vscode.window.showErrorMessage('Please open a workspace before adding scripts.');
+            return;
+        }
+
         if (this.panel) {
             this.panel.reveal();
             return;
@@ -86,7 +98,6 @@ export class ScriptCreationProvider {
         description: string;
         category?: string;
         tags?: string[];
-        sourcePath: string;
         platforms: {
             windows?: { type: 'file' | 'inline'; content: string };
             linux?: { type: 'file' | 'inline'; content: string };
@@ -118,7 +129,7 @@ export class ScriptCreationProvider {
 
             if (script.type === 'file') {
                 const fileName = script.content;
-                const filePath = path.join(config.sourcePath, fileName);
+                const filePath = path.join(this.currentWorkspace!, fileName);
                 const dir = path.dirname(filePath);
 
                 // Create directory if it doesn't exist
@@ -144,7 +155,7 @@ export class ScriptCreationProvider {
         }
 
         // Update or create scripts.json
-        const scriptsJsonPath = path.join(config.sourcePath, 'scripts.json');
+        const scriptsJsonPath = path.join(this.currentWorkspace!, 'scripts.json');
         let scriptsConfig: ScriptsConfig;
 
         try {
@@ -184,6 +195,12 @@ export class ScriptCreationProvider {
         // Also open scripts.json if it was created or modified
         const scriptsJsonDoc = await vscode.workspace.openTextDocument(scriptsJsonPath);
         await vscode.window.showTextDocument(scriptsJsonDoc, { preview: false });
+
+        // Refresh scripts list
+        await this.onScriptAdded();
+
+        // Close the panel
+        this.panel?.dispose();
     }
 
     private getWebviewContent() {
@@ -280,13 +297,6 @@ export class ScriptCreationProvider {
         </head>
         <body>
             <form id="scriptForm">
-                <div class="form-group">
-                    <label for="source">Source</label>
-                    <select id="source" required>
-                        <option value="">Select a source...</option>
-                    </select>
-                </div>
-
                 <div class="form-group">
                     <label for="name">Script Name</label>
                     <input type="text" id="name" required>
@@ -545,7 +555,6 @@ export class ScriptCreationProvider {
                             .split(',')
                             .map(tag => tag.trim())
                             .filter(tag => tag),
-                        sourcePath: document.getElementById('source').value,
                         platforms,
                         parameters: parameters.length > 0 ? parameters : undefined,
                         terminal: {
